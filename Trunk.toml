@@ -1,2 +1,3 @@
 [build]
+# required to make it work offline with `sw.js` (see #102)
 filehash = false
