@@ -1922,6 +1922,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
+name = "noise-functions"
+version = "0.7.0"
+source = "git+https://github.com/bluurryy/noise-functions?branch=more-modifiers#a9ca0408bb70361330b87501da522f244575af16"
+
+[[package]]
 name = "noise-functions-playground"
 version = "0.0.0"
 dependencies = [
@@ -1930,6 +1935,7 @@ dependencies = [
  "egui-graph-edit",
  "env_logger",
  "log",
+ "noise-functions",
  "serde",
  "wasm-bindgen-futures",
  "web-sys",
