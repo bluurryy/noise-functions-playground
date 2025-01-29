@@ -18,7 +18,7 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "eframe template",
+        "Noise Functions Playground",
         native_options,
         Box::new(|cc| Ok(Box::new(noise_functions_playground::App::new(cc)))),
     )
