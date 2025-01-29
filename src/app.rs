@@ -1,10 +1,18 @@
+use crate::nodes::{NodeEditor, NodeEditorUserState, NodeKinds};
+
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct App {}
+pub struct App {
+    editor: NodeEditor,
+    editor_state: NodeEditorUserState,
+}
 
 impl Default for App {
     fn default() -> Self {
-        Self {}
+        Self {
+            editor: NodeEditor::default(),
+            editor_state: NodeEditorUserState,
+        }
     }
 }
 
@@ -25,6 +33,10 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            let _response =
+                self.editor
+                    .draw_graph_editor(ui, NodeKinds, &mut self.editor_state, vec![]);
+
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);

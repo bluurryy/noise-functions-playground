@@ -923,6 +923,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-graph-edit"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "facb401e38655dd2e5bec4d2899ae35f2e677fcdc9c068c2b4b0d6128aa0fef8"
+dependencies = [
+ "egui",
+ "serde",
+ "slotmap",
+ "smallvec",
+ "thiserror",
+]
+
+[[package]]
 name = "egui-wgpu"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1914,6 +1927,7 @@ version = "0.0.0"
 dependencies = [
  "eframe",
  "egui",
+ "egui-graph-edit",
  "env_logger",
  "log",
  "serde",
@@ -2614,6 +2628,7 @@ version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
 dependencies = [
+ "serde",
  "version_check",
 ]
 
@@ -2622,6 +2637,9 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "smithay-client-toolkit"
