@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use egui_graph_edit::InputParamKind;
+use egui_graph_edit::{InputParamKind, NodeId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -67,9 +67,9 @@ pub enum Node {
     },
 
     Fractal {
-        lacunarity: f32,
         octaves: u32,
         gain: f32,
+        lacunarity: f32,
         weighted_strength: f32,
     },
     Frequency {
@@ -213,7 +213,7 @@ impl Default for Value {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct NodeEditorUserState;
 
 impl egui_graph_edit::DataTypeTrait<NodeEditorUserState> for ValueKind {
@@ -638,3 +638,64 @@ impl egui_graph_edit::NodeDataTrait for Node {
 type NodeGraph = egui_graph_edit::Graph<Node, ValueKind, Value>;
 pub type NodeEditor =
     egui_graph_edit::GraphEditorState<Node, ValueKind, Value, NodeKind, NodeEditorUserState>;
+
+pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions::Sample<2>> {
+    let node = &graph.nodes[node];
+    use noise_functions::Noise;
+
+    let input = |i: usize| -> Box<dyn noise_functions::Sample<2>> {
+        let input_id = node.inputs[i].1;
+
+        match graph.connection(input_id) {
+            Some(output_id) => node_to_noise(graph, graph.outputs[output_id].node),
+            None => Box::new(noise_functions::Constant(
+                match graph.inputs[input_id].value {
+                    Value::F32(value) => value,
+                    Value::I32(value) => value as f32,
+                    Value::U32(value) => value as f32,
+                },
+            )),
+        }
+    };
+
+    match node.user_data {
+        Node::Value => Box::new(noise_functions::Value),
+        Node::ValueCubic => Box::new(noise_functions::ValueCubic),
+        Node::Perlin => Box::new(noise_functions::Perlin),
+        Node::Simplex => Box::new(noise_functions::Simplex),
+        Node::OpenSimplex2 => Box::new(noise_functions::OpenSimplex2),
+        Node::OpenSimplex2s => Box::new(noise_functions::OpenSimplex2s),
+        Node::CellValue { jitter } => Box::new(noise_functions::CellValue { jitter }),
+        Node::CellDistance { jitter } => Box::new(noise_functions::CellValue { jitter }),
+        Node::CellDistanceSq { jitter } => Box::new(noise_functions::CellValue { jitter }),
+        Node::Fractal {
+            lacunarity,
+            octaves,
+            gain,
+            weighted_strength,
+        } => Box::new(
+            input(0)
+                .fbm(octaves, gain, lacunarity)
+                .weighted(weighted_strength),
+        ),
+        Node::Frequency { frequency } => Box::new(input(0).frequency(frequency)),
+        Node::TranslateXy { .. } => Box::new(input(0).translate_xy(input(1), input(2))),
+        Node::Abs => Box::new(input(0).abs()),
+        Node::Neg => Box::new(input(0).neg()),
+        Node::Ceil => Box::new(input(0).ceil()),
+        Node::Floor => Box::new(input(0).floor()),
+        Node::Round => Box::new(input(0).round()),
+        Node::Add { .. } => Box::new(input(0).add(input(1))),
+        Node::Sub { .. } => Box::new(input(0).sub(input(1))),
+        Node::Mul { .. } => Box::new(input(0).mul(input(1))),
+        Node::Div { .. } => Box::new(input(0).div(input(1))),
+        Node::Rem { .. } => Box::new(input(0).rem(input(1))),
+        Node::Pow { .. } => Box::new(input(0).pow(input(1))),
+        Node::Min { .. } => Box::new(input(0).min(input(1))),
+        Node::Max { .. } => Box::new(input(0).max(input(1))),
+        Node::Lerp { .. } => Box::new(input(0).lerp(input(1), input(2))),
+        Node::Clamp { .. } => Box::new(input(0).clamp(input(1), input(2))),
+        Node::AddSeed { seed } => Box::new(input(0).add_seed(seed)),
+        Node::MulSeed { seed } => Box::new(input(0).add_seed(seed)),
+    }
+}
