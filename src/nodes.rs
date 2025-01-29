@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
 use egui_graph_edit::{InputParamKind, NodeId};
+use noise_functions::{NoiseFn, Sample};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum NodeKind {
+pub enum Node {
     Value,
     ValueCubic,
     Perlin,
@@ -48,133 +49,42 @@ pub enum NodeKind {
     MulSeed,
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum Node {
-    Value,
-    ValueCubic,
-    Perlin,
-    Simplex,
-    OpenSimplex2,
-    OpenSimplex2s,
-    CellValue {
-        jitter: f32,
-    },
-    CellDistance {
-        jitter: f32,
-    },
-    CellDistanceSq {
-        jitter: f32,
-    },
-
-    Fractal {
-        octaves: u32,
-        gain: f32,
-        lacunarity: f32,
-        weighted_strength: f32,
-    },
-    Frequency {
-        frequency: f32,
-    },
-
-    TranslateXy {
-        x: f32,
-        y: f32,
-    },
-
-    Abs,
-    Neg,
-    Ceil,
-    Floor,
-    Round,
-
-    Add {
-        lhs: f32,
-        rhs: f32,
-    },
-    Sub {
-        lhs: f32,
-        rhs: f32,
-    },
-    Mul {
-        lhs: f32,
-        rhs: f32,
-    },
-    Div {
-        lhs: f32,
-        rhs: f32,
-    },
-    Rem {
-        lhs: f32,
-        rhs: f32,
-    },
-    Pow {
-        lhs: f32,
-        rhs: f32,
-    },
-    Min {
-        lhs: f32,
-        rhs: f32,
-    },
-    Max {
-        lhs: f32,
-        rhs: f32,
-    },
-
-    Lerp {
-        a: f32,
-        b: f32,
-        t: f32,
-    },
-    Clamp {
-        value: f32,
-        min: f32,
-        max: f32,
-    },
-
-    AddSeed {
-        seed: i32,
-    },
-    MulSeed {
-        seed: i32,
-    },
-}
-
 pub struct NodeKinds;
 
 impl egui_graph_edit::NodeTemplateIter for NodeKinds {
-    type Item = NodeKind;
+    type Item = Node;
 
     fn all_kinds(&self) -> Vec<Self::Item> {
         vec![
-            NodeKind::Value,
-            NodeKind::ValueCubic,
-            NodeKind::Perlin,
-            NodeKind::Simplex,
-            NodeKind::OpenSimplex2,
-            NodeKind::OpenSimplex2s,
-            NodeKind::CellValue,
-            NodeKind::CellDistance,
-            NodeKind::CellDistanceSq,
-            NodeKind::Fractal,
-            NodeKind::Frequency,
-            NodeKind::TranslateXy,
-            NodeKind::Abs,
-            NodeKind::Neg,
-            NodeKind::Ceil,
-            NodeKind::Floor,
-            NodeKind::Round,
-            NodeKind::Add,
-            NodeKind::Sub,
-            NodeKind::Mul,
-            NodeKind::Div,
-            NodeKind::Rem,
-            NodeKind::Pow,
-            NodeKind::Min,
-            NodeKind::Max,
-            NodeKind::Lerp,
-            NodeKind::Clamp,
-            NodeKind::AddSeed,
-            NodeKind::MulSeed,
+            Node::Value,
+            Node::ValueCubic,
+            Node::Perlin,
+            Node::Simplex,
+            Node::OpenSimplex2,
+            Node::OpenSimplex2s,
+            Node::CellValue,
+            Node::CellDistance,
+            Node::CellDistanceSq,
+            Node::Fractal,
+            Node::Frequency,
+            Node::TranslateXy,
+            Node::Abs,
+            Node::Neg,
+            Node::Ceil,
+            Node::Floor,
+            Node::Round,
+            Node::Add,
+            Node::Sub,
+            Node::Mul,
+            Node::Div,
+            Node::Rem,
+            Node::Pow,
+            Node::Min,
+            Node::Max,
+            Node::Lerp,
+            Node::Clamp,
+            Node::AddSeed,
+            Node::MulSeed,
         ]
     }
 }
@@ -234,7 +144,7 @@ impl egui_graph_edit::DataTypeTrait<NodeEditorUserState> for ValueKind {
     }
 }
 
-impl egui_graph_edit::NodeTemplateTrait for NodeKind {
+impl egui_graph_edit::NodeTemplateTrait for Node {
     type NodeData = Node;
     type DataType = ValueKind;
     type ValueType = Value;
@@ -250,74 +160,73 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
     }
 
     fn user_data(&self, _user_state: &mut Self::UserState) -> Self::NodeData {
-        match *self {
-            NodeKind::Value => Node::Value,
-            NodeKind::ValueCubic => Node::ValueCubic,
-            NodeKind::Perlin => Node::Perlin,
-            NodeKind::Simplex => Node::Simplex,
-            NodeKind::OpenSimplex2 => Node::OpenSimplex2,
-            NodeKind::OpenSimplex2s => Node::OpenSimplex2s,
-            NodeKind::CellValue => Node::CellValue { jitter: 1.0 },
-            NodeKind::CellDistance => Node::CellDistance { jitter: 1.0 },
-            NodeKind::CellDistanceSq => Node::CellDistanceSq { jitter: 1.0 },
+        *self
+        // match *self {
+        //     NodeKind::Value => Node::Value,
+        //     NodeKind::ValueCubic => Node::ValueCubic,
+        //     NodeKind::Perlin => Node::Perlin,
+        //     NodeKind::Simplex => Node::Simplex,
+        //     NodeKind::OpenSimplex2 => Node::OpenSimplex2,
+        //     NodeKind::OpenSimplex2s => Node::OpenSimplex2s,
+        //     NodeKind::CellValue => Node::CellValue { jitter: 1.0 },
+        //     NodeKind::CellDistance => Node::CellDistance { jitter: 1.0 },
+        //     NodeKind::CellDistanceSq => Node::CellDistanceSq { jitter: 1.0 },
 
-            NodeKind::Fractal => Node::Fractal {
-                lacunarity: 2.0,
-                octaves: 3,
-                gain: 0.5,
-                weighted_strength: 0.0,
-            },
-            NodeKind::Frequency => Node::Frequency { frequency: 1.0 },
+        //     NodeKind::Fractal => Node::Fractal {
+        //         lacunarity: 2.0,
+        //         octaves: 3,
+        //         gain: 0.5,
+        //         weighted_strength: 0.0,
+        //     },
+        //     NodeKind::Frequency => Node::Frequency { frequency: 1.0 },
 
-            NodeKind::TranslateXy => Node::TranslateXy { x: 0.0, y: 0.0 },
-            NodeKind::Abs => Node::Abs,
-            NodeKind::Neg => Node::Neg,
-            NodeKind::Ceil => Node::Ceil,
-            NodeKind::Floor => Node::Floor,
-            NodeKind::Round => Node::Round,
-            NodeKind::Add => Node::Add { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Sub => Node::Sub { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Mul => Node::Mul { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Div => Node::Div { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Rem => Node::Rem { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Pow => Node::Pow { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Min => Node::Min { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Max => Node::Max { lhs: 0.0, rhs: 0.0 },
-            NodeKind::Lerp => Node::Lerp {
-                a: 0.0,
-                b: 0.0,
-                t: 0.0,
-            },
-            NodeKind::Clamp => Node::Clamp {
-                value: 0.0,
-                min: 0.0,
-                max: 1.0,
-            },
-            NodeKind::AddSeed => Node::AddSeed { seed: 1 },
-            NodeKind::MulSeed => Node::AddSeed { seed: 10 },
-        }
+        //     NodeKind::TranslateXy => Node::TranslateXy { x: 0.0, y: 0.0 },
+        //     NodeKind::Abs => Node::Abs,
+        //     NodeKind::Neg => Node::Neg,
+        //     NodeKind::Ceil => Node::Ceil,
+        //     NodeKind::Floor => Node::Floor,
+        //     NodeKind::Round => Node::Round,
+        //     NodeKind::Add => Node::Add { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Sub => Node::Sub { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Mul => Node::Mul { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Div => Node::Div { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Rem => Node::Rem { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Pow => Node::Pow { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Min => Node::Min { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Max => Node::Max { lhs: 0.0, rhs: 0.0 },
+        //     NodeKind::Lerp => Node::Lerp {
+        //         a: 0.0,
+        //         b: 0.0,
+        //         t: 0.0,
+        //     },
+        //     NodeKind::Clamp => Node::Clamp {
+        //         value: 0.0,
+        //         min: 0.0,
+        //         max: 1.0,
+        //     },
+        //     NodeKind::AddSeed => Node::AddSeed { seed: 1 },
+        //     NodeKind::MulSeed => Node::AddSeed { seed: 10 },
+        // }
     }
 
     fn build_node(
         &self,
         graph: &mut egui_graph_edit::Graph<Self::NodeData, Self::DataType, Self::ValueType>,
-        user_state: &mut Self::UserState,
+        _user_state: &mut Self::UserState,
         node_id: egui_graph_edit::NodeId,
     ) {
-        let data = self.user_data(user_state);
-
         let noise = |graph: &mut NodeGraph| {
             graph.add_output_param(node_id, "Output".into(), ValueKind::F32);
         };
 
-        let cell_noise = |graph: &mut NodeGraph, jitter: f32| {
+        let cell_noise = |graph: &mut NodeGraph| {
             noise(graph);
 
             graph.add_input_param(
                 node_id,
                 "Jitter".into(),
                 ValueKind::F32,
-                Value::F32(jitter),
+                Value::F32(1.0),
                 InputParamKind::ConnectionOrConstant,
                 true,
             );
@@ -336,14 +245,14 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
             );
         };
 
-        let binary = |graph: &mut NodeGraph, lhs: f32, rhs: f32| {
+        let binary = |graph: &mut NodeGraph| {
             noise(graph);
 
             graph.add_input_param(
                 node_id,
                 "Lhs".into(),
                 ValueKind::F32,
-                Value::F32(lhs),
+                Value::F32(0.0),
                 InputParamKind::ConnectionOrConstant,
                 true,
             );
@@ -352,7 +261,7 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                 node_id,
                 "Rhs".into(),
                 ValueKind::F32,
-                Value::F32(rhs),
+                Value::F32(0.0),
                 InputParamKind::ConnectionOrConstant,
                 true,
             );
@@ -371,30 +280,25 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
             );
         };
 
-        match data {
+        match *self {
             Node::Value => noise(graph),
             Node::ValueCubic => noise(graph),
             Node::Perlin => noise(graph),
             Node::Simplex => noise(graph),
             Node::OpenSimplex2 => noise(graph),
             Node::OpenSimplex2s => noise(graph),
-            Node::CellValue { jitter } => cell_noise(graph, jitter),
-            Node::CellDistance { jitter } => cell_noise(graph, jitter),
-            Node::CellDistanceSq { jitter } => cell_noise(graph, jitter),
+            Node::CellValue => cell_noise(graph),
+            Node::CellDistance => cell_noise(graph),
+            Node::CellDistanceSq => cell_noise(graph),
 
-            Node::Fractal {
-                lacunarity,
-                octaves,
-                gain,
-                weighted_strength,
-            } => {
+            Node::Fractal => {
                 modifier(graph);
 
                 graph.add_input_param(
                     node_id,
                     "Octaves".into(),
                     ValueKind::U32,
-                    Value::U32(octaves),
+                    Value::U32(2),
                     InputParamKind::ConstantOnly,
                     true,
                 );
@@ -403,7 +307,7 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "Lacunarity".into(),
                     ValueKind::F32,
-                    Value::F32(lacunarity),
+                    Value::F32(3.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -412,7 +316,7 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "Gain".into(),
                     ValueKind::F32,
-                    Value::F32(gain),
+                    Value::F32(0.5),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -421,31 +325,31 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "Weighted Strength".into(),
                     ValueKind::F32,
-                    Value::F32(weighted_strength),
+                    Value::F32(0.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
             }
-            Node::Frequency { frequency } => {
+            Node::Frequency => {
                 modifier(graph);
 
                 graph.add_input_param(
                     node_id,
                     "Frequency".into(),
                     ValueKind::F32,
-                    Value::F32(frequency),
+                    Value::F32(3.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
             }
-            Node::TranslateXy { x, y } => {
+            Node::TranslateXy => {
                 modifier(graph);
 
                 graph.add_input_param(
                     node_id,
                     "X".into(),
                     ValueKind::F32,
-                    Value::F32(x),
+                    Value::F32(0.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -454,7 +358,7 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "Y".into(),
                     ValueKind::F32,
-                    Value::F32(y),
+                    Value::F32(0.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -464,22 +368,22 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
             Node::Ceil => modifier(graph),
             Node::Floor => modifier(graph),
             Node::Round => modifier(graph),
-            Node::Add { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Sub { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Mul { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Div { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Rem { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Pow { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Min { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Max { lhs, rhs } => binary(graph, lhs, rhs),
-            Node::Lerp { a, b, t } => {
+            Node::Add => binary(graph),
+            Node::Sub => binary(graph),
+            Node::Mul => binary(graph),
+            Node::Div => binary(graph),
+            Node::Rem => binary(graph),
+            Node::Pow => binary(graph),
+            Node::Min => binary(graph),
+            Node::Max => binary(graph),
+            Node::Lerp => {
                 noise(graph);
 
                 graph.add_input_param(
                     node_id,
                     "A".into(),
                     ValueKind::F32,
-                    Value::F32(a),
+                    Value::F32(0.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -488,7 +392,7 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "B".into(),
                     ValueKind::F32,
-                    Value::F32(b),
+                    Value::F32(1.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -497,19 +401,19 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "T".into(),
                     ValueKind::F32,
-                    Value::F32(t),
+                    Value::F32(0.5),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
             }
-            Node::Clamp { value, min, max } => {
+            Node::Clamp => {
                 noise(graph);
 
                 graph.add_input_param(
                     node_id,
                     "Value".into(),
                     ValueKind::F32,
-                    Value::F32(value),
+                    Value::F32(0.5),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -518,7 +422,7 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "Min".into(),
                     ValueKind::F32,
-                    Value::F32(min),
+                    Value::F32(0.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
@@ -527,47 +431,47 @@ impl egui_graph_edit::NodeTemplateTrait for NodeKind {
                     node_id,
                     "Max".into(),
                     ValueKind::F32,
-                    Value::F32(max),
+                    Value::F32(1.0),
                     InputParamKind::ConnectionOrConstant,
                     true,
                 );
             }
-            Node::AddSeed { seed } => seed_arith(graph, seed),
-            Node::MulSeed { seed } => seed_arith(graph, seed),
+            Node::AddSeed => seed_arith(graph, 1),
+            Node::MulSeed => seed_arith(graph, 10),
         }
     }
 
     fn node_finder_categories(&self, _user_state: &mut Self::UserState) -> Vec<Self::CategoryType> {
         vec![match self {
-            NodeKind::Value => NodeCategory::Base,
-            NodeKind::ValueCubic => NodeCategory::Base,
-            NodeKind::Perlin => NodeCategory::Base,
-            NodeKind::Simplex => NodeCategory::Base,
-            NodeKind::OpenSimplex2 => NodeCategory::Base,
-            NodeKind::OpenSimplex2s => NodeCategory::Base,
-            NodeKind::CellValue => NodeCategory::Base,
-            NodeKind::CellDistance => NodeCategory::Base,
-            NodeKind::CellDistanceSq => NodeCategory::Base,
-            NodeKind::Fractal => NodeCategory::Transform,
-            NodeKind::Frequency => NodeCategory::Transform,
-            NodeKind::TranslateXy => NodeCategory::Transform,
-            NodeKind::Abs => NodeCategory::Math,
-            NodeKind::Neg => NodeCategory::Math,
-            NodeKind::Ceil => NodeCategory::Math,
-            NodeKind::Floor => NodeCategory::Math,
-            NodeKind::Round => NodeCategory::Math,
-            NodeKind::Add => NodeCategory::Math,
-            NodeKind::Sub => NodeCategory::Math,
-            NodeKind::Mul => NodeCategory::Math,
-            NodeKind::Div => NodeCategory::Math,
-            NodeKind::Rem => NodeCategory::Math,
-            NodeKind::Pow => NodeCategory::Math,
-            NodeKind::Min => NodeCategory::Math,
-            NodeKind::Max => NodeCategory::Math,
-            NodeKind::Lerp => NodeCategory::Math,
-            NodeKind::Clamp => NodeCategory::Math,
-            NodeKind::AddSeed => NodeCategory::Seed,
-            NodeKind::MulSeed => NodeCategory::Seed,
+            Node::Value => NodeCategory::Base,
+            Node::ValueCubic => NodeCategory::Base,
+            Node::Perlin => NodeCategory::Base,
+            Node::Simplex => NodeCategory::Base,
+            Node::OpenSimplex2 => NodeCategory::Base,
+            Node::OpenSimplex2s => NodeCategory::Base,
+            Node::CellValue => NodeCategory::Base,
+            Node::CellDistance => NodeCategory::Base,
+            Node::CellDistanceSq => NodeCategory::Base,
+            Node::Fractal => NodeCategory::Transform,
+            Node::Frequency => NodeCategory::Transform,
+            Node::TranslateXy => NodeCategory::Transform,
+            Node::Abs => NodeCategory::Math,
+            Node::Neg => NodeCategory::Math,
+            Node::Ceil => NodeCategory::Math,
+            Node::Floor => NodeCategory::Math,
+            Node::Round => NodeCategory::Math,
+            Node::Add => NodeCategory::Math,
+            Node::Sub => NodeCategory::Math,
+            Node::Mul => NodeCategory::Math,
+            Node::Div => NodeCategory::Math,
+            Node::Rem => NodeCategory::Math,
+            Node::Pow => NodeCategory::Math,
+            Node::Min => NodeCategory::Math,
+            Node::Max => NodeCategory::Math,
+            Node::Lerp => NodeCategory::Math,
+            Node::Clamp => NodeCategory::Math,
+            Node::AddSeed => NodeCategory::Seed,
+            Node::MulSeed => NodeCategory::Seed,
         }]
     }
 }
@@ -637,24 +541,48 @@ impl egui_graph_edit::NodeDataTrait for Node {
 
 type NodeGraph = egui_graph_edit::Graph<Node, ValueKind, Value>;
 pub type NodeEditor =
-    egui_graph_edit::GraphEditorState<Node, ValueKind, Value, NodeKind, NodeEditorUserState>;
+    egui_graph_edit::GraphEditorState<Node, ValueKind, Value, Node, NodeEditorUserState>;
 
 pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions::Sample<2>> {
     let node = &graph.nodes[node];
     use noise_functions::Noise;
+
+    let const_input = |i: usize| -> f32 {
+        let input_id = node.inputs[i].1;
+
+        match graph.inputs[input_id].value {
+            Value::F32(value) => value,
+            Value::I32(value) => value as f32,
+            Value::U32(value) => value as f32,
+        }
+    };
+
+    let const_input_u32 = |i: usize| -> u32 {
+        let input_id = node.inputs[i].1;
+
+        match graph.inputs[input_id].value {
+            Value::F32(value) => value as u32,
+            Value::I32(value) => value as u32,
+            Value::U32(value) => value,
+        }
+    };
+
+    let const_input_i32 = |i: usize| -> i32 {
+        let input_id = node.inputs[i].1;
+
+        match graph.inputs[input_id].value {
+            Value::F32(value) => value as i32,
+            Value::I32(value) => value,
+            Value::U32(value) => value as i32,
+        }
+    };
 
     let input = |i: usize| -> Box<dyn noise_functions::Sample<2>> {
         let input_id = node.inputs[i].1;
 
         match graph.connection(input_id) {
             Some(output_id) => node_to_noise(graph, graph.outputs[output_id].node),
-            None => Box::new(noise_functions::Constant(
-                match graph.inputs[input_id].value {
-                    Value::F32(value) => value,
-                    Value::I32(value) => value as f32,
-                    Value::U32(value) => value as f32,
-                },
-            )),
+            None => Box::new(noise_functions::Constant(const_input(i))),
         }
     };
 
@@ -665,37 +593,53 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
         Node::Simplex => Box::new(noise_functions::Simplex),
         Node::OpenSimplex2 => Box::new(noise_functions::OpenSimplex2),
         Node::OpenSimplex2s => Box::new(noise_functions::OpenSimplex2s),
-        Node::CellValue { jitter } => Box::new(noise_functions::CellValue { jitter }),
-        Node::CellDistance { jitter } => Box::new(noise_functions::CellValue { jitter }),
-        Node::CellDistanceSq { jitter } => Box::new(noise_functions::CellValue { jitter }),
-        Node::Fractal {
-            lacunarity,
-            octaves,
-            gain,
-            weighted_strength,
-        } => Box::new(
+        Node::CellValue => {
+            let jitter = input(0);
+
+            Box::new(NoiseFn(move |point: [f32; 2], seed: i32| {
+                let jitter = jitter.sample_with_seed(point, seed);
+                noise_functions::CellValue { jitter }.sample_with_seed(point, seed)
+            }))
+        }
+        Node::CellDistance => {
+            let jitter = input(0);
+
+            Box::new(NoiseFn(move |point: [f32; 2], seed: i32| {
+                let jitter = jitter.sample_with_seed(point, seed);
+                noise_functions::CellDistance { jitter }.sample_with_seed(point, seed)
+            }))
+        }
+        Node::CellDistanceSq => {
+            let jitter = input(0);
+
+            Box::new(NoiseFn(move |point: [f32; 2], seed: i32| {
+                let jitter = jitter.sample_with_seed(point, seed);
+                noise_functions::CellDistanceSq { jitter }.sample_with_seed(point, seed)
+            }))
+        }
+        Node::Fractal => Box::new(
             input(0)
-                .fbm(octaves, gain, lacunarity)
-                .weighted(weighted_strength),
+                .fbm(const_input_u32(1), const_input(2), const_input(3))
+                .weighted(const_input(4)),
         ),
-        Node::Frequency { frequency } => Box::new(input(0).frequency(frequency)),
-        Node::TranslateXy { .. } => Box::new(input(0).translate_xy(input(1), input(2))),
+        Node::Frequency => Box::new(input(0).frequency(input(1))),
+        Node::TranslateXy => Box::new(input(0).translate_xy(input(1), input(2))),
         Node::Abs => Box::new(input(0).abs()),
         Node::Neg => Box::new(input(0).neg()),
         Node::Ceil => Box::new(input(0).ceil()),
         Node::Floor => Box::new(input(0).floor()),
         Node::Round => Box::new(input(0).round()),
-        Node::Add { .. } => Box::new(input(0).add(input(1))),
-        Node::Sub { .. } => Box::new(input(0).sub(input(1))),
-        Node::Mul { .. } => Box::new(input(0).mul(input(1))),
-        Node::Div { .. } => Box::new(input(0).div(input(1))),
-        Node::Rem { .. } => Box::new(input(0).rem(input(1))),
-        Node::Pow { .. } => Box::new(input(0).pow(input(1))),
-        Node::Min { .. } => Box::new(input(0).min(input(1))),
-        Node::Max { .. } => Box::new(input(0).max(input(1))),
-        Node::Lerp { .. } => Box::new(input(0).lerp(input(1), input(2))),
-        Node::Clamp { .. } => Box::new(input(0).clamp(input(1), input(2))),
-        Node::AddSeed { seed } => Box::new(input(0).add_seed(seed)),
-        Node::MulSeed { seed } => Box::new(input(0).add_seed(seed)),
+        Node::Add => Box::new(input(0).add(input(1))),
+        Node::Sub => Box::new(input(0).sub(input(1))),
+        Node::Mul => Box::new(input(0).mul(input(1))),
+        Node::Div => Box::new(input(0).div(input(1))),
+        Node::Rem => Box::new(input(0).rem(input(1))),
+        Node::Pow => Box::new(input(0).pow(input(1))),
+        Node::Min => Box::new(input(0).min(input(1))),
+        Node::Max => Box::new(input(0).max(input(1))),
+        Node::Lerp => Box::new(input(0).lerp(input(1), input(2))),
+        Node::Clamp => Box::new(input(0).clamp(input(1), input(2))),
+        Node::AddSeed => Box::new(input(0).add_seed(const_input_i32(1))),
+        Node::MulSeed => Box::new(input(0).add_seed(const_input_i32(1))),
     }
 }
