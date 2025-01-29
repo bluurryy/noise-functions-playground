@@ -20,7 +20,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Ok(Box::new(noise_functions_playground::TemplateApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(noise_functions_playground::App::new(cc)))),
     )
 }
 
