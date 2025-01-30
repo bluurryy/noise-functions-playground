@@ -936,6 +936,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-snarl"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93d55cf28e422c85145b777e4ba86c0b8f84eb86ddbce1bd86f439a94caf3754"
+dependencies = [
+ "egui",
+ "serde",
+ "slab",
+]
+
+[[package]]
 name = "egui-wgpu"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1933,6 +1944,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui-graph-edit",
+ "egui-snarl",
  "env_logger",
  "log",
  "noise-functions",
@@ -2626,6 +2638,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
+ "serde",
 ]
 
 [[package]]
