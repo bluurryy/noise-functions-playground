@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use egui_graph_edit::{InputId, InputParam, InputParamKind, NodeId};
+use egui_graph_edit::{InputId, InputParam, InputParamKind, NodeId, OutputId};
 use noise_functions::{NoiseFn, Sample};
 use serde::{Deserialize, Serialize};
 
@@ -47,6 +47,9 @@ pub enum Node {
     // seed
     AddSeed,
     MulSeed,
+
+    // input
+    Position,
 }
 
 pub struct NodeKinds;
@@ -85,6 +88,7 @@ impl egui_graph_edit::NodeTemplateIter for NodeKinds {
             Node::Clamp,
             Node::AddSeed,
             Node::MulSeed,
+            Node::Position,
         ]
     }
 }
@@ -95,6 +99,7 @@ pub enum NodeCategory {
     Transform,
     Math,
     Seed,
+    Input,
 }
 
 impl egui_graph_edit::CategoryTrait for NodeCategory {
@@ -469,6 +474,10 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
             }
             Node::AddSeed => seed_arith(graph, 1),
             Node::MulSeed => seed_arith(graph, 10),
+            Node::Position => {
+                graph.add_output_param(node_id, "X".into(), ValueKind::F32);
+                graph.add_output_param(node_id, "Y".into(), ValueKind::F32);
+            }
         }
     }
 
@@ -503,6 +512,7 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
             Node::Clamp => NodeCategory::Math,
             Node::AddSeed => NodeCategory::Seed,
             Node::MulSeed => NodeCategory::Seed,
+            Node::Position => NodeCategory::Input,
         }]
     }
 }
@@ -584,8 +594,19 @@ type NodeGraph = egui_graph_edit::Graph<Node, ValueKind, Value>;
 pub type NodeEditor =
     egui_graph_edit::GraphEditorState<Node, ValueKind, Value, Node, NodeEditorUserState>;
 
-pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions::Sample<2>> {
-    let node = &graph.nodes[node];
+pub fn node_to_noise(
+    graph: &NodeGraph,
+    output_id: OutputId,
+) -> Box<dyn noise_functions::Sample<2>> {
+    let node_id = graph.outputs[output_id].node;
+    let node = &graph.nodes[node_id];
+
+    let output_name = node
+        .outputs
+        .iter()
+        .find_map(|&(ref name, id)| (id == output_id).then_some(name.as_str()))
+        .unwrap();
+
     use noise_functions::Noise;
 
     let input_param = |name: &str| -> (InputId, &InputParam<ValueKind, Value>) {
@@ -635,7 +656,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
         let (input_id, _) = input_param(name);
 
         match graph.connection(input_id) {
-            Some(output_id) => node_to_noise(graph, graph.outputs[output_id].node),
+            Some(output_id) => node_to_noise(graph, output_id),
             None => Box::new(noise_functions::Constant(const_input(name))),
         }
     };
@@ -699,5 +720,10 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
         Node::Clamp => Box::new(input("Value").clamp(input("Min"), input("Max"))),
         Node::AddSeed => Box::new(input("Noise").add_seed(const_input_i32("Value"))),
         Node::MulSeed => Box::new(input("Noise").add_seed(const_input_i32("Value"))),
+        Node::Position => match output_name {
+            "X" => Box::new(NoiseFn(move |point: [f32; 2]| point[0])),
+            "Y" => Box::new(NoiseFn(move |point: [f32; 2]| point[1])),
+            _ => unreachable!(),
+        },
     }
 }

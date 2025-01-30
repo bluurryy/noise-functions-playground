@@ -70,8 +70,20 @@ impl App {
     }
 
     fn update_texture_for(&mut self, node_id: NodeId) {
+        let Some(output_id) = self
+            .settings
+            .editor
+            .graph
+            .nodes
+            .get(node_id)
+            .and_then(|n| n.outputs.first())
+            .map(|o| o.1)
+        else {
+            return;
+        };
+
         log::info!("updating texture");
-        let noise = node_to_noise(&self.settings.editor.graph, node_id);
+        let noise = node_to_noise(&self.settings.editor.graph, output_id);
 
         let mut image = Vec::<egui::Color32>::new();
         image.resize(
