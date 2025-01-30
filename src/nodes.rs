@@ -283,7 +283,7 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
             );
         };
 
-        let binary = |graph: &mut NodeGraph| {
+        let binary = |graph: &mut NodeGraph, rhs: f32| {
             noise(graph);
 
             graph.add_input_param(
@@ -299,7 +299,7 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
                 node_id,
                 "Rhs".into(),
                 ValueKind::F32,
-                Value::F32(0.0),
+                Value::F32(rhs),
                 InputParamKind::ConnectionOrConstant,
                 true,
             );
@@ -407,14 +407,14 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
             Node::Ceil => modifier(graph),
             Node::Floor => modifier(graph),
             Node::Round => modifier(graph),
-            Node::Add => binary(graph),
-            Node::Sub => binary(graph),
-            Node::Mul => binary(graph),
-            Node::Div => binary(graph),
-            Node::Rem => binary(graph),
-            Node::Pow => binary(graph),
-            Node::Min => binary(graph),
-            Node::Max => binary(graph),
+            Node::Add => binary(graph, 1.0),
+            Node::Sub => binary(graph, 1.0),
+            Node::Mul => binary(graph, 2.0),
+            Node::Div => binary(graph, 2.0),
+            Node::Rem => binary(graph, 1.0),
+            Node::Pow => binary(graph, 2.0),
+            Node::Min => binary(graph, 1.0),
+            Node::Max => binary(graph, 1.0),
             Node::Lerp => {
                 noise(graph);
 
