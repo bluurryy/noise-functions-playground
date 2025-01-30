@@ -91,7 +91,7 @@ impl egui_graph_edit::NodeTemplateIter for NodeKinds {
 
 #[derive(Debug, Clone, Copy)]
 pub enum NodeCategory {
-    Base,
+    Noise,
     Transform,
     Math,
     Seed,
@@ -474,15 +474,15 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
 
     fn node_finder_categories(&self, _user_state: &mut Self::UserState) -> Vec<Self::CategoryType> {
         vec![match self {
-            Node::Value => NodeCategory::Base,
-            Node::ValueCubic => NodeCategory::Base,
-            Node::Perlin => NodeCategory::Base,
-            Node::Simplex => NodeCategory::Base,
-            Node::OpenSimplex2 => NodeCategory::Base,
-            Node::OpenSimplex2s => NodeCategory::Base,
-            Node::CellValue => NodeCategory::Base,
-            Node::CellDistance => NodeCategory::Base,
-            Node::CellDistanceSq => NodeCategory::Base,
+            Node::Value => NodeCategory::Noise,
+            Node::ValueCubic => NodeCategory::Noise,
+            Node::Perlin => NodeCategory::Noise,
+            Node::Simplex => NodeCategory::Noise,
+            Node::OpenSimplex2 => NodeCategory::Noise,
+            Node::OpenSimplex2s => NodeCategory::Noise,
+            Node::CellValue => NodeCategory::Noise,
+            Node::CellDistance => NodeCategory::Noise,
+            Node::CellDistanceSq => NodeCategory::Noise,
             Node::Fractal => NodeCategory::Transform,
             Node::Frequency => NodeCategory::Transform,
             Node::TranslateXy => NodeCategory::Transform,
