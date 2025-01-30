@@ -1,4 +1,4 @@
-use egui_graph_edit::{NodeId, NodeResponse};
+use egui_graph_edit::{InputId, NodeId, NodeResponse};
 use serde::{Deserialize, Serialize};
 
 use crate::nodes::{node_to_noise, NodeEditor, NodeEditorResponse, NodeEditorUserState, NodeKinds};
@@ -34,6 +34,24 @@ impl App {
             preview_texture_scale: 3.0,
             last_sampled_node: None,
         }
+    }
+
+    fn set_input_active(&mut self, input_id: InputId) {
+        let Some(input) = self.settings.editor.graph.inputs.get(input_id) else {
+            return;
+        };
+
+        self.set_node_active(input.node);
+    }
+
+    fn set_node_active(&mut self, node_id: NodeId) {
+        if !self.settings.editor.graph.nodes.contains_key(node_id) {
+            return;
+        }
+
+        self.settings.editor.selected_nodes.clear();
+        self.settings.editor.selected_nodes.push(node_id);
+        self.update_texture_for(node_id);
     }
 
     fn update_texture_for_selected(&mut self) {
@@ -109,22 +127,12 @@ impl eframe::App for App {
                     NodeResponse::User(NodeEditorResponse::Changed { node_id }) => {
                         self.update_texture_for(node_id)
                     }
-                    NodeResponse::CreatedNode(node_id) => {
-                        self.settings.editor.selected_nodes.clear();
-                        self.settings.editor.selected_nodes.push(node_id);
-                        self.update_texture_for(node_id);
-                    }
+                    NodeResponse::CreatedNode(node_id) => self.set_node_active(node_id),
                     NodeResponse::ConnectEventEnded { output: _, input } => {
-                        let node_id = self.settings.editor.graph.inputs[input].node;
-                        self.settings.editor.selected_nodes.clear();
-                        self.settings.editor.selected_nodes.push(node_id);
-                        self.update_texture_for(node_id);
+                        self.set_input_active(input)
                     }
                     NodeResponse::DisconnectEvent { output: _, input } => {
-                        let node_id = self.settings.editor.graph.inputs[input].node;
-                        self.settings.editor.selected_nodes.clear();
-                        self.settings.editor.selected_nodes.push(node_id);
-                        self.update_texture_for(node_id);
+                        self.set_input_active(input)
                     }
                     _ => (),
                 }
