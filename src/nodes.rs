@@ -110,16 +110,6 @@ pub enum ValueKind {
     U32,
 }
 
-impl ValueKind {
-    fn name(self) -> &'static str {
-        match self {
-            ValueKind::F32 => "f32",
-            ValueKind::I32 => "i32",
-            ValueKind::U32 => "u32",
-        }
-    }
-}
-
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum Value {
     F32(f32),
@@ -598,13 +588,6 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
     let node = &graph.nodes[node];
     use noise_functions::Noise;
 
-    fn expect_type<T>(option: Option<T>, name: &str, expected: &str, got: &str) -> T {
-        match option {
-            Some(value) => value,
-            None => panic!("expected \"{name}\" to be a {expected} but it is a {got}"),
-        }
-    }
-
     let input_param = |name: &str| -> (InputId, &InputParam<ValueKind, Value>) {
         match node.inputs.iter().find(|(n, _)| n == name) {
             Some(&(_, input_id)) => (input_id, &graph.inputs[input_id]),
@@ -613,7 +596,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
     };
 
     let const_input = |name: &str| -> f32 {
-        let (input_id, input) = input_param(name);
+        let (_, input) = input_param(name);
 
         match input.value.f32() {
             Some(value) => value,
@@ -625,7 +608,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
     };
 
     let const_input_u32 = |name: &str| -> u32 {
-        let (input_id, input) = input_param(name);
+        let (_, input) = input_param(name);
 
         match input.value.u32() {
             Some(value) => value,
@@ -637,7 +620,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
     };
 
     let const_input_i32 = |name: &str| -> i32 {
-        let (input_id, input) = input_param(name);
+        let (_, input) = input_param(name);
 
         match input.value.i32() {
             Some(value) => value,
@@ -649,7 +632,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
     };
 
     let input = |name: &str| -> Box<dyn noise_functions::Sample<2>> {
-        let (input_id, input) = input_param(name);
+        let (input_id, _) = input_param(name);
 
         match graph.connection(input_id) {
             Some(output_id) => node_to_noise(graph, graph.outputs[output_id].node),

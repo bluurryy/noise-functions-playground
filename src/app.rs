@@ -7,6 +7,8 @@ pub struct App {
     settings: Settings,
     preview_texture: egui::TextureHandle,
     preview_texture_size: usize,
+    preview_texture_scale: f32,
+    last_sampled_node: Option<NodeId>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -28,12 +30,21 @@ impl App {
                 egui::ColorImage::example(),
                 egui::TextureOptions::NEAREST,
             ),
-            preview_texture_size: 512,
+            preview_texture_size: 256,
+            preview_texture_scale: 3.0,
+            last_sampled_node: None,
         }
     }
 
     fn update_texture_for_selected(&mut self) {
-        let Some(&node_id) = self.settings.editor.selected_nodes.first() else {
+        let Some(node_id) = self
+            .settings
+            .editor
+            .selected_nodes
+            .first()
+            .copied()
+            .or(self.last_sampled_node)
+        else {
             return;
         };
 
@@ -56,8 +67,8 @@ impl App {
         for y in 0..self.preview_texture_size {
             for x in 0..self.preview_texture_size {
                 let i = y * self.preview_texture_size + x;
-                let x = x as f32 * scalar_times_two - 1.0;
-                let y = y as f32 * scalar_times_two - 1.0;
+                let x = (x as f32 * scalar_times_two - 1.0) * self.preview_texture_scale;
+                let y = (y as f32 * scalar_times_two - 1.0) * self.preview_texture_scale;
                 let value = noise.sample_with_seed([x, y], 0);
                 let value_01 = value * 0.5 + 0.5;
                 let value_255 = (value_01 * 255.0) as u8;
@@ -73,6 +84,8 @@ impl App {
             },
             egui::TextureOptions::NEAREST,
         );
+
+        self.last_sampled_node = Some(node_id);
     }
 }
 
@@ -96,6 +109,23 @@ impl eframe::App for App {
                     NodeResponse::User(NodeEditorResponse::Changed { node_id }) => {
                         self.update_texture_for(node_id)
                     }
+                    NodeResponse::CreatedNode(node_id) => {
+                        self.settings.editor.selected_nodes.clear();
+                        self.settings.editor.selected_nodes.push(node_id);
+                        self.update_texture_for(node_id);
+                    }
+                    NodeResponse::ConnectEventEnded { output: _, input } => {
+                        let node_id = self.settings.editor.graph.inputs[input].node;
+                        self.settings.editor.selected_nodes.clear();
+                        self.settings.editor.selected_nodes.push(node_id);
+                        self.update_texture_for(node_id);
+                    }
+                    NodeResponse::DisconnectEvent { output: _, input } => {
+                        let node_id = self.settings.editor.graph.inputs[input].node;
+                        self.settings.editor.selected_nodes.clear();
+                        self.settings.editor.selected_nodes.push(node_id);
+                        self.update_texture_for(node_id);
+                    }
                     _ => (),
                 }
             }
@@ -109,7 +139,32 @@ impl eframe::App for App {
                 let texture =
                     egui::load::SizedTexture::new(&self.preview_texture, egui::Vec2::splat(512.0));
                 ui.image(texture);
-                ui.label("preview image goes here");
+
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut self.preview_texture_size)
+                                .speed(10.0)
+                                .range(8.0..=512.0),
+                        )
+                        .changed()
+                    {
+                        self.update_texture_for_selected();
+                    }
+
+                    ui.label("Preview Texture Resolution");
+                });
+
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(egui::DragValue::new(&mut self.preview_texture_scale).speed(0.1))
+                        .changed()
+                    {
+                        self.update_texture_for_selected();
+                    }
+
+                    ui.label("Preview Texture Scale");
+                });
             });
         });
     }
