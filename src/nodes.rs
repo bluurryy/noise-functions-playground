@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use egui_graph_edit::{InputParamKind, NodeId};
+use egui_graph_edit::{InputId, InputParam, InputParamKind, NodeId};
 use noise_functions::{NoiseFn, Sample};
 use serde::{Deserialize, Serialize};
 
@@ -103,11 +103,21 @@ impl egui_graph_edit::CategoryTrait for NodeCategory {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValueKind {
     F32,
     I32,
     U32,
+}
+
+impl ValueKind {
+    fn name(self) -> &'static str {
+        match self {
+            ValueKind::F32 => "f32",
+            ValueKind::I32 => "i32",
+            ValueKind::U32 => "u32",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -115,6 +125,37 @@ pub enum Value {
     F32(f32),
     I32(i32),
     U32(u32),
+}
+
+impl Value {
+    fn kind(self) -> ValueKind {
+        match self {
+            Value::F32(_) => ValueKind::F32,
+            Value::I32(_) => ValueKind::I32,
+            Value::U32(_) => ValueKind::U32,
+        }
+    }
+
+    fn f32(self) -> Option<f32> {
+        match self {
+            Value::F32(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    fn i32(self) -> Option<i32> {
+        match self {
+            Value::I32(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    fn u32(self) -> Option<u32> {
+        match self {
+            Value::U32(v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 impl Default for Value {
@@ -547,42 +588,62 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
     let node = &graph.nodes[node];
     use noise_functions::Noise;
 
-    let const_input = |i: usize| -> f32 {
-        let input_id = node.inputs[i].1;
+    fn expect_type<T>(option: Option<T>, name: &str, expected: &str, got: &str) -> T {
+        match option {
+            Some(value) => value,
+            None => panic!("expected \"{name}\" to be a {expected} but it is a {got}"),
+        }
+    }
 
-        match graph.inputs[input_id].value {
-            Value::F32(value) => value,
-            Value::I32(value) => value as f32,
-            Value::U32(value) => value as f32,
+    let input_param = |name: &str| -> (InputId, &InputParam<ValueKind, Value>) {
+        match node.inputs.iter().find(|(n, _)| n == name) {
+            Some(&(_, input_id)) => (input_id, &graph.inputs[input_id]),
+            None => panic!("can't find input named \"{name}\""),
         }
     };
 
-    let const_input_u32 = |i: usize| -> u32 {
-        let input_id = node.inputs[i].1;
+    let const_input = |name: &str| -> f32 {
+        let (input_id, input) = input_param(name);
 
-        match graph.inputs[input_id].value {
-            Value::F32(value) => value as u32,
-            Value::I32(value) => value as u32,
-            Value::U32(value) => value,
+        match input.value.f32() {
+            Some(value) => value,
+            None => panic!(
+                "expected \"{name}\" to be a f32 but it is a {:?}",
+                input.value.kind()
+            ),
         }
     };
 
-    let const_input_i32 = |i: usize| -> i32 {
-        let input_id = node.inputs[i].1;
+    let const_input_u32 = |name: &str| -> u32 {
+        let (input_id, input) = input_param(name);
 
-        match graph.inputs[input_id].value {
-            Value::F32(value) => value as i32,
-            Value::I32(value) => value,
-            Value::U32(value) => value as i32,
+        match input.value.u32() {
+            Some(value) => value,
+            None => panic!(
+                "expected \"{name}\" to be a u32 but it is a {:?}",
+                input.value.kind()
+            ),
         }
     };
 
-    let input = |i: usize| -> Box<dyn noise_functions::Sample<2>> {
-        let input_id = node.inputs[i].1;
+    let const_input_i32 = |name: &str| -> i32 {
+        let (input_id, input) = input_param(name);
+
+        match input.value.i32() {
+            Some(value) => value,
+            None => panic!(
+                "expected \"{name}\" to be a i32 but it is a {:?}",
+                input.value.kind()
+            ),
+        }
+    };
+
+    let input = |name: &str| -> Box<dyn noise_functions::Sample<2>> {
+        let (input_id, input) = input_param(name);
 
         match graph.connection(input_id) {
             Some(output_id) => node_to_noise(graph, graph.outputs[output_id].node),
-            None => Box::new(noise_functions::Constant(const_input(i))),
+            None => Box::new(noise_functions::Constant(const_input(name))),
         }
     };
 
@@ -594,7 +655,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
         Node::OpenSimplex2 => Box::new(noise_functions::OpenSimplex2),
         Node::OpenSimplex2s => Box::new(noise_functions::OpenSimplex2s),
         Node::CellValue => {
-            let jitter = input(0);
+            let jitter = input("Jitter");
 
             Box::new(NoiseFn(move |point: [f32; 2], seed: i32| {
                 let jitter = jitter.sample_with_seed(point, seed);
@@ -602,7 +663,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
             }))
         }
         Node::CellDistance => {
-            let jitter = input(0);
+            let jitter = input("Jitter");
 
             Box::new(NoiseFn(move |point: [f32; 2], seed: i32| {
                 let jitter = jitter.sample_with_seed(point, seed);
@@ -610,7 +671,7 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
             }))
         }
         Node::CellDistanceSq => {
-            let jitter = input(0);
+            let jitter = input("Jitter");
 
             Box::new(NoiseFn(move |point: [f32; 2], seed: i32| {
                 let jitter = jitter.sample_with_seed(point, seed);
@@ -618,28 +679,32 @@ pub fn node_to_noise(graph: &NodeGraph, node: NodeId) -> Box<dyn noise_functions
             }))
         }
         Node::Fractal => Box::new(
-            input(0)
-                .fbm(const_input_u32(1), const_input(2), const_input(3))
-                .weighted(const_input(4)),
+            input("Noise")
+                .fbm(
+                    const_input_u32("Octaves"),
+                    const_input("Gain"),
+                    const_input("Lacunarity"),
+                )
+                .weighted(const_input("Weighted Strength")),
         ),
-        Node::Frequency => Box::new(input(0).frequency(input(1))),
-        Node::TranslateXy => Box::new(input(0).translate_xy(input(1), input(2))),
-        Node::Abs => Box::new(input(0).abs()),
-        Node::Neg => Box::new(input(0).neg()),
-        Node::Ceil => Box::new(input(0).ceil()),
-        Node::Floor => Box::new(input(0).floor()),
-        Node::Round => Box::new(input(0).round()),
-        Node::Add => Box::new(input(0).add(input(1))),
-        Node::Sub => Box::new(input(0).sub(input(1))),
-        Node::Mul => Box::new(input(0).mul(input(1))),
-        Node::Div => Box::new(input(0).div(input(1))),
-        Node::Rem => Box::new(input(0).rem(input(1))),
-        Node::Pow => Box::new(input(0).pow(input(1))),
-        Node::Min => Box::new(input(0).min(input(1))),
-        Node::Max => Box::new(input(0).max(input(1))),
-        Node::Lerp => Box::new(input(0).lerp(input(1), input(2))),
-        Node::Clamp => Box::new(input(0).clamp(input(1), input(2))),
-        Node::AddSeed => Box::new(input(0).add_seed(const_input_i32(1))),
-        Node::MulSeed => Box::new(input(0).add_seed(const_input_i32(1))),
+        Node::Frequency => Box::new(input("Noise").frequency(input("Frequency"))),
+        Node::TranslateXy => Box::new(input("Noise").translate_xy(input("X"), input("Y"))),
+        Node::Abs => Box::new(input("Noise").abs()),
+        Node::Neg => Box::new(input("Noise").neg()),
+        Node::Ceil => Box::new(input("Noise").ceil()),
+        Node::Floor => Box::new(input("Noise").floor()),
+        Node::Round => Box::new(input("Noise").round()),
+        Node::Add => Box::new(input("Lhs").add(input("Rhs"))),
+        Node::Sub => Box::new(input("Lhs").sub(input("Rhs"))),
+        Node::Mul => Box::new(input("Lhs").mul(input("Rhs"))),
+        Node::Div => Box::new(input("Lhs").div(input("Rhs"))),
+        Node::Rem => Box::new(input("Lhs").rem(input("Rhs"))),
+        Node::Pow => Box::new(input("Lhs").pow(input("Rhs"))),
+        Node::Min => Box::new(input("Lhs").min(input("Rhs"))),
+        Node::Max => Box::new(input("Lhs").max(input("Rhs"))),
+        Node::Lerp => Box::new(input("A").lerp(input("B"), input("T"))),
+        Node::Clamp => Box::new(input("Value").clamp(input("Min"), input("Max"))),
+        Node::AddSeed => Box::new(input("Noise").add_seed(const_input_i32("Value"))),
+        Node::MulSeed => Box::new(input("Noise").add_seed(const_input_i32("Value"))),
     }
 }
