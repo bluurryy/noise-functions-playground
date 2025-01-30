@@ -525,38 +525,48 @@ impl egui_graph_edit::WidgetValueTrait for Value {
     fn value_widget(
         &mut self,
         param_name: &str,
-        _node_id: egui_graph_edit::NodeId,
+        node_id: egui_graph_edit::NodeId,
         ui: &mut egui::Ui,
         _user_state: &mut Self::UserState,
         _node_data: &Self::NodeData,
     ) -> Vec<Self::Response> {
-        match self {
+        let changed = match self {
             Value::F32(value) => {
                 ui.horizontal(|ui| {
                     ui.label(param_name);
-                    ui.add(egui::DragValue::new(value).speed(0.05).min_decimals(2));
-                });
+                    ui.add(egui::DragValue::new(value).speed(0.05).min_decimals(2))
+                        .changed()
+                })
+                .inner
             }
             Value::U32(value) => {
                 ui.horizontal(|ui| {
                     ui.label(param_name);
-                    ui.add(egui::DragValue::new(value));
-                });
+                    ui.add(egui::DragValue::new(value)).changed()
+                })
+                .inner
             }
             Value::I32(value) => {
                 ui.horizontal(|ui| {
                     ui.label(param_name);
-                    ui.add(egui::DragValue::new(value));
-                });
+                    ui.add(egui::DragValue::new(value)).changed()
+                })
+                .inner
             }
-        }
+        };
 
-        vec![]
+        if changed {
+            vec![NodeEditorResponse::Changed { node_id }]
+        } else {
+            vec![]
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct NodeEditorResponse;
+pub enum NodeEditorResponse {
+    Changed { node_id: NodeId },
+}
 
 impl egui_graph_edit::UserResponseTrait for NodeEditorResponse {}
 

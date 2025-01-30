@@ -1,6 +1,7 @@
+use egui_graph_edit::{NodeId, NodeResponse};
 use serde::{Deserialize, Serialize};
 
-use crate::nodes::{node_to_noise, NodeEditor, NodeEditorUserState, NodeKinds};
+use crate::nodes::{node_to_noise, NodeEditor, NodeEditorResponse, NodeEditorUserState, NodeKinds};
 
 pub struct App {
     settings: Settings,
@@ -31,11 +32,15 @@ impl App {
         }
     }
 
-    fn update_texture(&mut self) {
+    fn update_texture_for_selected(&mut self) {
         let Some(&node_id) = self.settings.editor.selected_nodes.first() else {
             return;
         };
 
+        self.update_texture_for(node_id);
+    }
+
+    fn update_texture_for(&mut self, node_id: NodeId) {
         log::info!("updating texture");
         let noise = node_to_noise(&self.settings.editor.graph, node_id);
 
@@ -87,7 +92,10 @@ impl eframe::App for App {
 
             for node_response in response.node_responses {
                 match node_response {
-                    egui_graph_edit::NodeResponse::SelectNode(_) => self.update_texture(),
+                    NodeResponse::SelectNode(_) => self.update_texture_for_selected(),
+                    NodeResponse::User(NodeEditorResponse::Changed { node_id }) => {
+                        self.update_texture_for(node_id)
+                    }
                     _ => (),
                 }
             }
