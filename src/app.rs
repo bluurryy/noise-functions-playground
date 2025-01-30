@@ -1,5 +1,5 @@
 use egui_graph_edit::{InputId, NodeId, NodeResponse};
-use egui_snarl::{InPinId, OutPinId, Snarl};
+use egui_snarl::{OutPinId, Snarl};
 use serde::{Deserialize, Serialize};
 
 use crate::{

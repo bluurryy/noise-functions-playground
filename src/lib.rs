@@ -1,5 +1,5 @@
 #![warn(clippy::all)]
-#![allow(clippy::single_match)]
+#![allow(clippy::single_match, clippy::collapsible_if)]
 
 mod app;
 mod nodes;
