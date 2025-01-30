@@ -1924,7 +1924,7 @@ checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 [[package]]
 name = "noise-functions"
 version = "0.7.0"
-source = "git+https://github.com/bluurryy/noise-functions?branch=more-modifiers#ea30af96f5156692cab3b29d5a71ebe62846c46f"
+source = "git+https://github.com/bluurryy/noise-functions?branch=more-modifiers#82f5557eea59458d8e949ba6888ee33e3678ab38"
 
 [[package]]
 name = "noise-functions-playground"
