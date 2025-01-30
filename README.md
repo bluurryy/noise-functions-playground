@@ -1,4 +1,4 @@
-# Noise Functions playground
+# Noise Functions Playground
 
 Playground for the [`noise-functions`](https://github.com/bluurryy/noise-functions) crate.
 
