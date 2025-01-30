@@ -1,4 +1,4 @@
-var cacheName = 'egui-template-pwa';
+var cacheName = 'noise-functions-demo-pwa';
 var filesToCache = [
   './',
   './index.html',
