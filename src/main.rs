@@ -50,7 +50,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(noise_functions_playground::TemplateApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(noise_functions_playground::App::new(cc)))),
             )
             .await;
 
