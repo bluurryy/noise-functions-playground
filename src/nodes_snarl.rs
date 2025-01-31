@@ -147,12 +147,6 @@ impl Viewer {
     }
 
     pub fn changed(&self) -> Option<NodeId> {
-        dbg!(
-            &self.changed_nodes,
-            &self.active_node,
-            &self.prev_active_node
-        );
-
         if self.active_node != self.prev_active_node || !self.changed_nodes.is_empty() {
             self.active_node
         } else {
