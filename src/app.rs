@@ -259,11 +259,18 @@ fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
         ui.spacing_mut().item_spacing.x = 0.0;
         ui.label("Powered by ");
         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
+        ui.label(", ");
         ui.hyperlink_to(
             "eframe",
             "https://github.com/emilk/egui/tree/master/crates/eframe",
         );
+        ui.label(", ");
+        ui.hyperlink_to(
+            "egui-graph-edit",
+            "https://github.com/kamirr/egui-graph-edit",
+        );
+        ui.label(" and ");
+        ui.hyperlink_to("egui-snarl", "https://github.com/zakarumych/egui-snarl");
         ui.label(".");
     });
 }
