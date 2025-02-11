@@ -211,11 +211,11 @@ impl Viewer {
                     ("Add", Node::Add { lhs: 0.0, rhs: 0.0 }),
                     ("Sub", Node::Sub { lhs: 0.0, rhs: 0.0 }),
                     ("Mul", Node::Mul { lhs: 1.0, rhs: 1.0 }),
-                    ("Div", Node::Mul { lhs: 1.0, rhs: 1.0 }),
-                    ("Rem", Node::Mul { lhs: 1.0, rhs: 1.0 }),
+                    ("Div", Node::Div { lhs: 1.0, rhs: 1.0 }),
+                    ("Rem", Node::Rem { lhs: 1.0, rhs: 1.0 }),
                     ("Pow", Node::Pow { lhs: 1.0, rhs: 1.0 }),
-                    ("Min", Node::Pow { lhs: 0.0, rhs: 0.0 }),
-                    ("Max", Node::Pow { lhs: 0.0, rhs: 0.0 }),
+                    ("Min", Node::Min { lhs: 0.0, rhs: 0.0 }),
+                    ("Max", Node::Max { lhs: 0.0, rhs: 0.0 }),
                     (
                         "Lerp",
                         Node::Lerp {
