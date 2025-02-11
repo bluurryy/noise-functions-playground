@@ -1,5 +1,6 @@
-use egui_graph_edit::{InputId, NodeId, NodeResponse};
+use egui_graph_edit::{InputId, NodeResponse};
 use egui_snarl::{OutPinId, Snarl};
+use noise_functions::Sample;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -14,7 +15,7 @@ pub struct App {
     preview_texture: egui::TextureHandle,
     preview_texture_size: usize,
     preview_texture_scale: f32,
-    last_sampled_node: Option<NodeId>,
+    last_sampled_node: Option<egui_graph_edit::NodeId>,
     last_sampled_node_snarl: Option<egui_snarl::NodeId>,
     alt: bool,
     viewer: nodes_snarl::Viewer,
@@ -26,6 +27,41 @@ pub struct Settings {
     snarl: Snarl<nodes_snarl::Node>,
     editor: NodeEditor,
     editor_state: NodeEditorUserState,
+}
+
+trait NodeId {
+    fn get_noise(self, app: &mut App) -> Option<Box<dyn Sample<2>>>;
+}
+
+impl NodeId for egui_graph_edit::NodeId {
+    fn get_noise(self, app: &mut App) -> Option<Box<dyn Sample<2>>> {
+        let graph = &app.settings.editor.graph;
+
+        let output_id = graph
+            .nodes
+            .get(self)
+            .and_then(|n| n.outputs.first())
+            .map(|o| o.1)?;
+
+        app.last_sampled_node = Some(self);
+
+        Some(node_to_noise(graph, output_id))
+    }
+}
+
+impl NodeId for egui_snarl::NodeId {
+    fn get_noise(self, app: &mut App) -> Option<Box<dyn Sample<2>>> {
+        let graph = &app.settings.snarl;
+
+        let out_pin = OutPinId {
+            node: self,
+            output: 0,
+        };
+
+        app.last_sampled_node_snarl = Some(self);
+
+        nodes_snarl::node_to_noise(graph, out_pin)
+    }
 }
 
 impl App {
@@ -59,7 +95,7 @@ impl App {
         self.set_node_active(input.node);
     }
 
-    fn set_node_active(&mut self, node_id: NodeId) {
+    fn set_node_active(&mut self, node_id: egui_graph_edit::NodeId) {
         if !self.settings.editor.graph.nodes.contains_key(node_id) {
             return;
         }
@@ -70,37 +106,33 @@ impl App {
     }
 
     fn update_texture_for_selected(&mut self) {
-        let Some(node_id) = self
-            .settings
-            .editor
-            .selected_nodes
-            .first()
-            .copied()
-            .or(self.last_sampled_node)
-        else {
-            return;
-        };
-
-        self.update_texture_for(node_id);
+        if self.alt {
+            if let Some(node_id) = self.viewer.active_node.or(self.last_sampled_node_snarl) {
+                self.update_texture_for(node_id);
+            }
+        } else {
+            if let Some(node_id) = self
+                .settings
+                .editor
+                .selected_nodes
+                .first()
+                .copied()
+                .or(self.last_sampled_node)
+            {
+                self.update_texture_for(node_id);
+            }
+        }
     }
 
-    fn update_texture_for(&mut self, node_id: NodeId) {
-        let Some(output_id) = self
-            .settings
-            .editor
-            .graph
-            .nodes
-            .get(node_id)
-            .and_then(|n| n.outputs.first())
-            .map(|o| o.1)
-        else {
+    fn update_texture_for(&mut self, node_id: impl NodeId) {
+        log::info!("updating texture");
+
+        let Some(noise) = node_id.get_noise(self) else {
             return;
         };
 
-        log::info!("updating texture");
-        let noise = node_to_noise(&self.settings.editor.graph, output_id);
-
         let mut image = Vec::<egui::Color32>::new();
+
         image.resize(
             self.preview_texture_size * self.preview_texture_size,
             egui::Color32::PLACEHOLDER,
@@ -135,48 +167,6 @@ impl App {
             },
             egui::TextureOptions::NEAREST,
         );
-
-        self.last_sampled_node = Some(node_id);
-    }
-
-    fn update_texture_for_snarl(&mut self, node: egui_snarl::NodeId) {
-        let out_pin = OutPinId { node, output: 0 };
-
-        log::info!("updating texture");
-        let noise = nodes_snarl::node_to_noise(&self.settings.snarl, out_pin)
-            .expect("failed to build noise generator");
-
-        let mut image = Vec::<egui::Color32>::new();
-        image.resize(
-            self.preview_texture_size * self.preview_texture_size,
-            egui::Color32::PLACEHOLDER,
-        );
-
-        let scalar = 1.0 / self.preview_texture_size as f32;
-        let scalar_times_two = scalar * 2.0;
-
-        for y in 0..self.preview_texture_size {
-            for x in 0..self.preview_texture_size {
-                let i = y * self.preview_texture_size + x;
-                let x = (x as f32 * scalar_times_two - 1.0) * self.preview_texture_scale;
-                let y = (y as f32 * scalar_times_two - 1.0) * self.preview_texture_scale;
-                let value = noise.sample_with_seed([x, y], 0);
-                let value_01 = value * 0.5 + 0.5;
-                let value_255 = (value_01 * 255.0) as u8;
-                let color = egui::Color32::from_gray(value_255);
-                image[i] = color;
-            }
-        }
-
-        self.preview_texture.set(
-            egui::ColorImage {
-                size: [self.preview_texture_size; 2],
-                pixels: image,
-            },
-            egui::TextureOptions::NEAREST,
-        );
-
-        self.last_sampled_node_snarl = Some(node);
     }
 }
 
@@ -191,7 +181,7 @@ impl eframe::App for App {
                 self.viewer.show(&mut self.settings.snarl, ui);
 
                 if let Some(node) = self.viewer.changed() {
-                    self.update_texture_for_snarl(node)
+                    self.update_texture_for(node)
                 }
             } else {
                 let response = self.settings.editor.draw_graph_editor(

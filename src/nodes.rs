@@ -597,7 +597,7 @@ impl egui_graph_edit::NodeDataTrait for Node {
     }
 }
 
-type NodeGraph = egui_graph_edit::Graph<Node, ValueKind, Value>;
+pub type NodeGraph = egui_graph_edit::Graph<Node, ValueKind, Value>;
 pub type NodeEditor =
     egui_graph_edit::GraphEditorState<Node, ValueKind, Value, Node, NodeEditorUserState>;
 

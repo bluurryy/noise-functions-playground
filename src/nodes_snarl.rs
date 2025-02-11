@@ -116,7 +116,7 @@ impl Node {}
 #[derive(Default)]
 pub struct Viewer {
     changed_nodes: egui::ahash::HashSet<NodeId>,
-    active_node: Option<NodeId>,
+    pub active_node: Option<NodeId>,
     prev_active_node: Option<NodeId>,
 }
 
