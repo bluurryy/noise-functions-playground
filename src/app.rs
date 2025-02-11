@@ -270,11 +270,11 @@ impl eframe::App for App {
                 });
 
                 if self.alt {
-                    ui.label("ℹ Press RMB to delete links / nodes.");
-                    ui.label("ℹ Hold LMB to pan.");
+                    ui.label("ℹ Right click nodes and links to delete them.");
+                    ui.label("ℹ Hold left mouse button to pan.");
                     ui.label("ℹ Tick a node's checkbox to preview.");
                 } else {
-                    ui.label("ℹ Hold MMB to pan.");
+                    ui.label("ℹ Hold middle mouse button to pan.");
                     ui.label("ℹ Click on node to preview.");
                 }
             });
