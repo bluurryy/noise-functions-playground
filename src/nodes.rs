@@ -19,6 +19,7 @@ pub enum Node {
     // misc
     Fractal,
     Frequency,
+    TriangleWave,
 
     // translate
     TranslateXy,
@@ -71,6 +72,7 @@ impl egui_graph_edit::NodeTemplateIter for NodeKinds {
             Node::CellDistanceSq,
             Node::Fractal,
             Node::Frequency,
+            Node::TriangleWave,
             Node::TranslateXy,
             Node::Abs,
             Node::Neg,
@@ -368,7 +370,7 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
                     true,
                 );
             }
-            Node::Frequency => {
+            Node::Frequency | Node::TriangleWave => {
                 modifier(graph);
 
                 graph.add_input_param(
@@ -497,6 +499,7 @@ impl egui_graph_edit::NodeTemplateTrait for Node {
             Node::CellDistanceSq => NodeCategory::Noise,
             Node::Fractal => NodeCategory::Transform,
             Node::Frequency => NodeCategory::Transform,
+            Node::TriangleWave => NodeCategory::Math,
             Node::TranslateXy => NodeCategory::Transform,
             Node::Abs => NodeCategory::Math,
             Node::Neg => NodeCategory::Math,
@@ -706,6 +709,7 @@ pub fn node_to_noise(
                 .weighted(const_input("Weighted Strength")),
         ),
         Node::Frequency => Box::new(input("Noise").frequency(input("Frequency"))),
+        Node::TriangleWave => Box::new(input("Noise").triangle_wave(input("Frequency"))),
         Node::TranslateXy => Box::new(input("Noise").translate_xy(input("X"), input("Y"))),
         Node::Abs => Box::new(input("Noise").abs()),
         Node::Neg => Box::new(input("Noise").neg()),

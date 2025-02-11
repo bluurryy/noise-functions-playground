@@ -35,6 +35,9 @@ pub enum Node {
     Frequency {
         frequency: f32,
     },
+    TriangleWave {
+        frequency: f32,
+    },
 
     // translate
     TranslateXy {
@@ -229,6 +232,7 @@ impl Viewer {
                             max: 1.0,
                         },
                     ),
+                    ("Triangle Wave", Node::TriangleWave { frequency: 1.0 }),
                 ],
             ),
             (
@@ -270,6 +274,7 @@ impl SnarlViewer<Node> for Viewer {
             Node::CellDistanceSq { .. } => "Cell DistanceSq",
             Node::Fractal { .. } => "Fractal",
             Node::Frequency { .. } => "Frequency",
+            Node::TriangleWave { .. } => "TriangleWave",
             Node::TranslateXy { .. } => "Translate Xy",
             Node::Abs => "Abs",
             Node::Neg => "Neg",
@@ -329,6 +334,7 @@ impl SnarlViewer<Node> for Viewer {
             Node::CellDistanceSq { .. } => 1,
             Node::Fractal { .. } => 5,
             Node::Frequency { .. } => 2,
+            Node::TriangleWave { .. } => 2,
             Node::TranslateXy { .. } => 3,
             Node::Abs => 1,
             Node::Neg => 1,
@@ -472,7 +478,7 @@ impl SnarlViewer<Node> for Viewer {
 
                 PinInfo::default()
             }
-            Node::Frequency { frequency } => {
+            Node::Frequency { frequency } | Node::TriangleWave { frequency } => {
                 match pin.id.input {
                     0 => {
                         ui.add(egui::Label::new("Noise").selectable(false));
@@ -564,6 +570,7 @@ impl SnarlViewer<Node> for Viewer {
             | Node::CellDistanceSq { .. }
             | Node::Fractal { .. }
             | Node::Frequency { .. }
+            | Node::TriangleWave { .. }
             | Node::TranslateXy { .. }
             | Node::Abs
             | Node::Neg
@@ -610,6 +617,7 @@ impl SnarlViewer<Node> for Viewer {
             | Node::CellDistanceSq { .. }
             | Node::Fractal { .. }
             | Node::Frequency { .. }
+            | Node::TriangleWave { .. }
             | Node::TranslateXy { .. }
             | Node::Abs
             | Node::Neg
@@ -789,6 +797,9 @@ pub fn node_to_noise(
         )),
         Node::Frequency { frequency } => Some(Box::new(
             input_or(0, 0.0)?.frequency(input_or(1, frequency)?),
+        )),
+        Node::TriangleWave { frequency } => Some(Box::new(
+            input_or(0, 0.0)?.triangle_wave(input_or(1, frequency)?),
         )),
         Node::TranslateXy { x, y } => Some(Box::new(
             input_or(0, 0.0)?.translate_xy(input_or(1, x)?, input_or(2, y)?),
