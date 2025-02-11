@@ -249,6 +249,15 @@ impl eframe::App for App {
                     ui.add(egui::Checkbox::without_text(&mut self.alt));
                     ui.label("Use Alternative Node Editor");
                 });
+
+                if self.alt {
+                    ui.label("ℹ Press RMB to delete links / nodes.");
+                    ui.label("ℹ Hold LMB to pan.");
+                    ui.label("ℹ Tick a node's checkbox to preview.");
+                } else {
+                    ui.label("ℹ Hold MMB to pan.");
+                    ui.label("ℹ Click on node to preview.");
+                }
             });
         });
     }
