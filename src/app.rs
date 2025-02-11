@@ -107,10 +107,6 @@ impl App {
 
     fn update_texture_for_selected(&mut self) {
         if self.alt {
-            if let Some(node_id) = self.viewer.active_node.or(self.last_sampled_node_snarl) {
-                self.update_texture_for(node_id);
-            }
-        } else {
             if let Some(node_id) = self
                 .settings
                 .editor
@@ -119,6 +115,10 @@ impl App {
                 .copied()
                 .or(self.last_sampled_node)
             {
+                self.update_texture_for(node_id);
+            }
+        } else {
+            if let Some(node_id) = self.viewer.active_node.or(self.last_sampled_node_snarl) {
                 self.update_texture_for(node_id);
             }
         }
@@ -178,12 +178,6 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.alt {
-                self.viewer.show(&mut self.settings.snarl, ui);
-
-                if let Some(node) = self.viewer.changed() {
-                    self.update_texture_for(node)
-                }
-            } else {
                 let response = self.settings.editor.draw_graph_editor(
                     ui,
                     NodeKinds,
@@ -206,6 +200,12 @@ impl eframe::App for App {
                         }
                         _ => (),
                     }
+                }
+            } else {
+                self.viewer.show(&mut self.settings.snarl, ui);
+
+                if let Some(node) = self.viewer.changed() {
+                    self.update_texture_for(node)
                 }
             }
 
@@ -273,12 +273,12 @@ impl eframe::App for App {
                 });
 
                 if self.alt {
+                    ui.label("ℹ Hold middle mouse button to pan.");
+                    ui.label("ℹ Click on node to preview.");
+                } else {
                     ui.label("ℹ Right click nodes and links to delete them.");
                     ui.label("ℹ Hold left mouse button to pan.");
                     ui.label("ℹ Tick a node's checkbox to preview.");
-                } else {
-                    ui.label("ℹ Hold middle mouse button to pan.");
-                    ui.label("ℹ Click on node to preview.");
                 }
             });
         });
