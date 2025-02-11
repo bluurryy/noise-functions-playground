@@ -222,14 +222,17 @@ impl eframe::App for App {
                 ui.horizontal(|ui| {
                     let mut changed = false;
 
-                    let mut input = |value: &mut f32| {
+                    let mut input = |ui: &mut egui::Ui, value: &mut f32| {
                         changed |= ui
                             .add(egui::DragValue::new(value).speed(0.025).fixed_decimals(1))
                             .changed();
                     };
 
-                    input(&mut self.preview_value_max);
-                    input(&mut self.preview_value_min);
+                    input(ui, &mut self.preview_value_max);
+
+                    ui.label("..");
+
+                    input(ui, &mut self.preview_value_min);
 
                     if changed {
                         self.update_texture_for_selected();
