@@ -352,8 +352,8 @@ impl SnarlViewer<Node> for Viewer {
             Node::Max { .. } => 2,
             Node::Lerp { .. } => 3,
             Node::Clamp { .. } => 3,
-            Node::AddSeed { .. } => 1,
-            Node::MulSeed { .. } => 1,
+            Node::AddSeed { .. } => 2,
+            Node::MulSeed { .. } => 2,
             Node::Position => 0,
         }
     }
@@ -373,6 +373,25 @@ impl SnarlViewer<Node> for Viewer {
                           name: &str,
                           value: &mut f32,
                           speed: f32|
+         -> PinInfo {
+            ui.horizontal(|ui| {
+                ui.add(egui::Label::new(name).selectable(false));
+
+                if !has_remote {
+                    if ui.add(egui::DragValue::new(value).speed(speed)).changed() {
+                        viewer.changed_nodes.insert(pin.id.node);
+                    }
+                }
+            });
+
+            PinInfo::default()
+        };
+
+        let drag_value_int = |viewer: &mut Viewer,
+                              ui: &mut egui::Ui,
+                              name: &str,
+                              value: &mut i32,
+                              speed: i32|
          -> PinInfo {
             ui.horizontal(|ui| {
                 ui.add(egui::Label::new(name).selectable(false));
@@ -548,8 +567,14 @@ impl SnarlViewer<Node> for Viewer {
                 PinInfo::default()
             }
             Node::AddSeed { add: value } | Node::MulSeed { mul: value } => {
-                if ui.add(egui::DragValue::new(value).speed(1)).changed() {
-                    self.changed_nodes.insert(pin.id.node);
+                match pin.id.input {
+                    0 => {
+                        ui.add(egui::Label::new("Noise").selectable(false));
+                    }
+                    1 => {
+                        drag_value_int(self, ui, "Value", value, 1);
+                    }
+                    _ => (),
                 }
 
                 PinInfo::default()
