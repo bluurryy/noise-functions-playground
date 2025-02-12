@@ -298,12 +298,12 @@ fn attribution(ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
 
-        ui.label(egui::RichText::from(GIT_VERSION).text_style(egui::TextStyle::Monospace));
-        ui.label(" ");
         ui.hyperlink_to(
-            "on GitHub",
+            "node-functions-playground",
             "https://github.com/bluurryy/noise-functions-playground",
         );
+        ui.label(" ");
+        ui.label(egui::RichText::from(GIT_VERSION).text_style(egui::TextStyle::Monospace));
         ui.label(". ");
 
         ui.label("Powered by ");
