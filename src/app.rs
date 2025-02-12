@@ -3,10 +3,7 @@ use egui_snarl::{OutPinId, Snarl};
 use noise_functions::Sample;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    nodes::{node_to_noise, NodeEditor, NodeEditorResponse, NodeEditorUserState, NodeKinds},
-    nodes_snarl,
-};
+use crate::{nodes_graph_edit, nodes_snarl};
 
 pub struct App {
     settings: Settings,
@@ -15,18 +12,18 @@ pub struct App {
     preview_texture: egui::TextureHandle,
     preview_texture_size: usize,
     preview_texture_scale: f32,
-    last_sampled_node: Option<egui_graph_edit::NodeId>,
+    last_sampled_node_graph_edit: Option<egui_graph_edit::NodeId>,
     last_sampled_node_snarl: Option<egui_snarl::NodeId>,
     alt: bool,
-    viewer: nodes_snarl::Viewer,
+    snarl_viewer: nodes_snarl::Viewer,
 }
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct Settings {
     snarl: Snarl<nodes_snarl::Node>,
-    editor: NodeEditor,
-    editor_state: NodeEditorUserState,
+    graph_edit_editor: nodes_graph_edit::NodeEditor,
+    graph_edit_editor_state: nodes_graph_edit::NodeEditorUserState,
 }
 
 trait NodeId {
@@ -35,7 +32,7 @@ trait NodeId {
 
 impl NodeId for egui_graph_edit::NodeId {
     fn get_noise(self, app: &mut App) -> Option<Box<dyn Sample<2>>> {
-        let graph = &app.settings.editor.graph;
+        let graph = &app.settings.graph_edit_editor.graph;
 
         let output_id = graph
             .nodes
@@ -43,9 +40,9 @@ impl NodeId for egui_graph_edit::NodeId {
             .and_then(|n| n.outputs.first())
             .map(|o| o.1)?;
 
-        app.last_sampled_node = Some(self);
+        app.last_sampled_node_graph_edit = Some(self);
 
-        Some(node_to_noise(graph, output_id))
+        Some(nodes_graph_edit::node_to_noise(graph, output_id))
     }
 }
 
@@ -80,15 +77,15 @@ impl App {
             preview_value_max: 1.0,
             preview_texture_size: 256,
             preview_texture_scale: 3.0,
-            last_sampled_node: None,
+            last_sampled_node_graph_edit: None,
             last_sampled_node_snarl: None,
             alt: false,
-            viewer: nodes_snarl::Viewer::default(),
+            snarl_viewer: nodes_snarl::Viewer::default(),
         }
     }
 
     fn set_input_active(&mut self, input_id: InputId) {
-        let Some(input) = self.settings.editor.graph.inputs.get(input_id) else {
+        let Some(input) = self.settings.graph_edit_editor.graph.inputs.get(input_id) else {
             return;
         };
 
@@ -96,12 +93,18 @@ impl App {
     }
 
     fn set_node_active(&mut self, node_id: egui_graph_edit::NodeId) {
-        if !self.settings.editor.graph.nodes.contains_key(node_id) {
+        if !self
+            .settings
+            .graph_edit_editor
+            .graph
+            .nodes
+            .contains_key(node_id)
+        {
             return;
         }
 
-        self.settings.editor.selected_nodes.clear();
-        self.settings.editor.selected_nodes.push(node_id);
+        self.settings.graph_edit_editor.selected_nodes.clear();
+        self.settings.graph_edit_editor.selected_nodes.push(node_id);
         self.update_texture_for(node_id);
     }
 
@@ -109,16 +112,20 @@ impl App {
         if self.alt {
             if let Some(node_id) = self
                 .settings
-                .editor
+                .graph_edit_editor
                 .selected_nodes
                 .first()
                 .copied()
-                .or(self.last_sampled_node)
+                .or(self.last_sampled_node_graph_edit)
             {
                 self.update_texture_for(node_id);
             }
         } else {
-            if let Some(node_id) = self.viewer.active_node.or(self.last_sampled_node_snarl) {
+            if let Some(node_id) = self
+                .snarl_viewer
+                .active_node
+                .or(self.last_sampled_node_snarl)
+            {
                 self.update_texture_for(node_id);
             }
         }
@@ -178,19 +185,19 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.alt {
-                let response = self.settings.editor.draw_graph_editor(
+                let response = self.settings.graph_edit_editor.draw_graph_editor(
                     ui,
-                    NodeKinds,
-                    &mut self.settings.editor_state,
+                    nodes_graph_edit::NodeKinds,
+                    &mut self.settings.graph_edit_editor_state,
                     vec![],
                 );
 
                 for node_response in response.node_responses {
                     match node_response {
                         NodeResponse::SelectNode(_) => self.update_texture_for_selected(),
-                        NodeResponse::User(NodeEditorResponse::Changed { node_id }) => {
-                            self.update_texture_for(node_id)
-                        }
+                        NodeResponse::User(nodes_graph_edit::NodeEditorResponse::Changed {
+                            node_id,
+                        }) => self.update_texture_for(node_id),
                         NodeResponse::CreatedNode(node_id) => self.set_node_active(node_id),
                         NodeResponse::ConnectEventEnded { output: _, input } => {
                             self.set_input_active(input)
@@ -202,9 +209,9 @@ impl eframe::App for App {
                     }
                 }
             } else {
-                self.viewer.show(&mut self.settings.snarl, ui);
+                self.snarl_viewer.show(&mut self.settings.snarl, ui);
 
-                if let Some(node) = self.viewer.changed() {
+                if let Some(node) = self.snarl_viewer.changed() {
                     self.update_texture_for(node)
                 }
             }
