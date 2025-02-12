@@ -626,10 +626,6 @@ impl SnarlViewer<Node> for Viewer {
         _scale: f32,
         snarl: &mut egui_snarl::Snarl<Node>,
     ) -> PinInfo {
-        if pin.id.output == 0 {
-            ui.add_space(10.0);
-        }
-
         match snarl[pin.id.node] {
             Node::Value
             | Node::ValueCubic
