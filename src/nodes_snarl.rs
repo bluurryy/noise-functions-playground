@@ -109,6 +109,9 @@ pub enum Node {
 
     // input
     Position,
+    Number {
+        value: f32,
+    },
 }
 
 impl Node {}
@@ -242,7 +245,13 @@ impl Viewer {
                     ("Mul Seed", Node::MulSeed { mul: 1 }),
                 ],
             ),
-            ("Input", &[("Position", Node::Position)]),
+            (
+                "Input",
+                &[
+                    ("Position", Node::Position),
+                    ("Number", Node::Number { value: 0.0 }),
+                ],
+            ),
         ];
 
         ui.label("Add node");
@@ -295,6 +304,7 @@ impl SnarlViewer<Node> for Viewer {
             Node::AddSeed { .. } => "Add Seed",
             Node::MulSeed { .. } => "Multiply Seed",
             Node::Position => "Position",
+            Node::Number { .. } => "Number",
         }
         .into()
     }
@@ -355,6 +365,7 @@ impl SnarlViewer<Node> for Viewer {
             Node::AddSeed { .. } => 2,
             Node::MulSeed { .. } => 2,
             Node::Position => 0,
+            Node::Number { .. } => 1,
         }
     }
 
@@ -579,6 +590,11 @@ impl SnarlViewer<Node> for Viewer {
 
                 PinInfo::default()
             }
+            Node::Number { value } => {
+                drag_value(self, ui, "Value", value, 0.01);
+
+                PinInfo::default()
+            }
         }
     }
 
@@ -614,7 +630,8 @@ impl SnarlViewer<Node> for Viewer {
             | Node::Lerp { .. }
             | Node::Clamp { .. }
             | Node::AddSeed { .. }
-            | Node::MulSeed { .. } => 1,
+            | Node::MulSeed { .. }
+            | Node::Number { .. } => 1,
             Node::Position => 2,
         }
     }
@@ -657,7 +674,8 @@ impl SnarlViewer<Node> for Viewer {
             | Node::Lerp { .. }
             | Node::Clamp { .. }
             | Node::AddSeed { .. }
-            | Node::MulSeed { .. } => {
+            | Node::MulSeed { .. }
+            | Node::Number { .. } => {
                 ui.add(egui::Label::new("Output").selectable(false));
                 PinInfo::default()
             }
@@ -852,5 +870,6 @@ pub fn node_to_noise(
             1 => Some(Box::new(NoiseFn(move |point: [f32; 2]| point[1]))),
             _ => None,
         },
+        Node::Number { value } => Some(Box::new(input_or(0, value)?)),
     }
 }
