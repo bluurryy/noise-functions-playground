@@ -14,7 +14,6 @@ egui = "0.30.0"
 eframe = { version = "0.30.0", features = ["persistence"] }
 log = "0.4.25"
 serde = { version = "1.0.217", features = ["derive"] }
-egui-graph-edit = { version = "0.5.2", features = ["persistence", "serde"] }
 noise-functions = { git = "https://github.com/bluurryy/noise-functions" }
 egui-snarl = { version = "0.6.0", features = ["serde"] }
 git-version = "0.3.9"
