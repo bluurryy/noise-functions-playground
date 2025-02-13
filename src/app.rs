@@ -8,13 +8,13 @@ pub struct App {
     settings: Settings,
     preview_texture: egui::TextureHandle,
     last_sampled_node: Option<egui_snarl::NodeId>,
-    snarl_viewer: nodes_snarl::Viewer,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct Settings {
     snarl: Snarl<nodes_snarl::Node>,
+    snarl_viewer: nodes_snarl::Viewer,
     preview_value_min: f32,
     preview_value_max: f32,
     preview_texture_size: usize,
@@ -25,6 +25,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             snarl: Default::default(),
+            snarl_viewer: Default::default(),
             preview_value_min: -1.0,
             preview_value_max: 1.0,
             preview_texture_size: 256,
@@ -35,7 +36,7 @@ impl Default for Settings {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        App {
+        let mut app = App {
             settings: cc
                 .storage
                 .and_then(|storage| eframe::get_value(storage, eframe::APP_KEY))
@@ -46,12 +47,20 @@ impl App {
                 egui::TextureOptions::NEAREST,
             ),
             last_sampled_node: None,
-            snarl_viewer: nodes_snarl::Viewer::default(),
-        }
+        };
+
+        app.update_texture_for_selected();
+
+        app
     }
 
     fn update_texture_for_selected(&mut self) {
-        if let Some(node_id) = self.snarl_viewer.active_node.or(self.last_sampled_node) {
+        if let Some(node_id) = self
+            .settings
+            .snarl_viewer
+            .active_node
+            .or(self.last_sampled_node)
+        {
             self.update_texture_for(node_id);
         }
     }
@@ -118,9 +127,11 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.snarl_viewer.show(&mut self.settings.snarl, ui);
+            self.settings
+                .snarl_viewer
+                .show(&mut self.settings.snarl, ui);
 
-            if let Some(node) = self.snarl_viewer.changed() {
+            if let Some(node) = self.settings.snarl_viewer.changed() {
                 self.update_texture_for(node)
             }
 

@@ -114,10 +114,15 @@ pub enum Node {
     },
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct Viewer {
-    changed_nodes: egui::ahash::HashSet<NodeId>,
     pub active_node: Option<NodeId>,
+
+    #[serde(skip)]
+    changed_nodes: egui::ahash::HashSet<NodeId>,
+
+    #[serde(skip)]
     prev_active_node: Option<NodeId>,
 }
 
