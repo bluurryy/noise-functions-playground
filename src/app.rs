@@ -6,19 +6,31 @@ use crate::nodes_snarl;
 
 pub struct App {
     settings: Settings,
-    preview_value_min: f32,
-    preview_value_max: f32,
     preview_texture: egui::TextureHandle,
-    preview_texture_size: usize,
-    preview_texture_scale: f32,
     last_sampled_node: Option<egui_snarl::NodeId>,
     snarl_viewer: nodes_snarl::Viewer,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct Settings {
     snarl: Snarl<nodes_snarl::Node>,
+    preview_value_min: f32,
+    preview_value_max: f32,
+    preview_texture_size: usize,
+    preview_texture_scale: f32,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            snarl: Default::default(),
+            preview_value_min: -1.0,
+            preview_value_max: 1.0,
+            preview_texture_size: 256,
+            preview_texture_scale: 3.0,
+        }
+    }
 }
 
 impl App {
@@ -33,10 +45,6 @@ impl App {
                 egui::ColorImage::example(),
                 egui::TextureOptions::NEAREST,
             ),
-            preview_value_min: -1.0,
-            preview_value_max: 1.0,
-            preview_texture_size: 256,
-            preview_texture_scale: 3.0,
             last_sampled_node: None,
             snarl_viewer: nodes_snarl::Viewer::default(),
         }
@@ -67,24 +75,24 @@ impl App {
         let mut image = Vec::<egui::Color32>::new();
 
         image.resize(
-            self.preview_texture_size * self.preview_texture_size,
+            self.settings.preview_texture_size * self.settings.preview_texture_size,
             egui::Color32::PLACEHOLDER,
         );
 
-        let value_min = self.preview_value_min;
-        let value_max = self.preview_value_max;
+        let value_min = self.settings.preview_value_min;
+        let value_max = self.settings.preview_value_max;
         let value_delta = value_max - value_min;
         let inv_value_delta = 1.0 / value_delta;
         let value_offset = value_min * inv_value_delta;
 
-        let inv_size = 1.0 / self.preview_texture_size as f32;
+        let inv_size = 1.0 / self.settings.preview_texture_size as f32;
         let scalar = inv_size * 2.0;
 
-        for y in 0..self.preview_texture_size {
-            for x in 0..self.preview_texture_size {
-                let i = y * self.preview_texture_size + x;
-                let x = (x as f32 * scalar - 1.0) * self.preview_texture_scale;
-                let y = (y as f32 * scalar - 1.0) * self.preview_texture_scale;
+        for y in 0..self.settings.preview_texture_size {
+            for x in 0..self.settings.preview_texture_size {
+                let i = y * self.settings.preview_texture_size + x;
+                let x = (x as f32 * scalar - 1.0) * self.settings.preview_texture_scale;
+                let y = (y as f32 * scalar - 1.0) * self.settings.preview_texture_scale;
                 let value = noise.sample_with_seed([x, y], 0);
                 let value_01 = value * inv_value_delta - value_offset;
                 let value_255 = (value_01 * 255.0) as u8;
@@ -95,7 +103,7 @@ impl App {
 
         self.preview_texture.set(
             egui::ColorImage {
-                size: [self.preview_texture_size; 2],
+                size: [self.settings.preview_texture_size; 2],
                 pixels: image,
             },
             egui::TextureOptions::NEAREST,
@@ -135,11 +143,11 @@ impl eframe::App for App {
                             .changed();
                     };
 
-                    input(ui, &mut self.preview_value_max);
+                    input(ui, &mut self.settings.preview_value_max);
 
                     ui.label("..");
 
-                    input(ui, &mut self.preview_value_min);
+                    input(ui, &mut self.settings.preview_value_min);
 
                     if changed {
                         self.update_texture_for_selected();
@@ -151,7 +159,7 @@ impl eframe::App for App {
                 ui.horizontal(|ui| {
                     if ui
                         .add(
-                            egui::DragValue::new(&mut self.preview_texture_size)
+                            egui::DragValue::new(&mut self.settings.preview_texture_size)
                                 .speed(10.0)
                                 .range(8.0..=512.0),
                         )
@@ -165,7 +173,10 @@ impl eframe::App for App {
 
                 ui.horizontal(|ui| {
                     if ui
-                        .add(egui::DragValue::new(&mut self.preview_texture_scale).speed(0.1))
+                        .add(
+                            egui::DragValue::new(&mut self.settings.preview_texture_scale)
+                                .speed(0.1),
+                        )
                         .changed()
                     {
                         self.update_texture_for_selected();
