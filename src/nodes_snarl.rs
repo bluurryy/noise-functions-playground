@@ -114,8 +114,6 @@ pub enum Node {
     },
 }
 
-impl Node {}
-
 #[derive(Default)]
 pub struct Viewer {
     changed_nodes: egui::ahash::HashSet<NodeId>,
