@@ -7,7 +7,6 @@ use crate::nodes_snarl;
 pub struct App {
     settings: Settings,
     preview_texture: egui::TextureHandle,
-    last_sampled_node: Option<egui_snarl::NodeId>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -46,7 +45,6 @@ impl App {
                 egui::ColorImage::example(),
                 egui::TextureOptions::NEAREST,
             ),
-            last_sampled_node: None,
         };
 
         app.update_texture_for_selected();
@@ -55,12 +53,7 @@ impl App {
     }
 
     fn update_texture_for_selected(&mut self) {
-        if let Some(node_id) = self
-            .settings
-            .snarl_viewer
-            .active_node
-            .or(self.last_sampled_node)
-        {
+        if let Some(node_id) = self.settings.snarl_viewer.active_node {
             self.update_texture_for(node_id);
         }
     }
@@ -74,8 +67,6 @@ impl App {
             node: node_id,
             output: 0,
         };
-
-        self.last_sampled_node = Some(node_id);
 
         let Some(noise) = nodes_snarl::node_to_noise(graph, out_pin) else {
             return;
