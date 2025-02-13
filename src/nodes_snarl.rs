@@ -52,6 +52,9 @@ pub enum Node {
     Floor,
     Ceil,
     Round,
+    Sin,
+    Cos,
+    Tan,
 
     // binary
     Add {
@@ -214,6 +217,9 @@ impl Viewer {
                     ("Floor", Node::Floor),
                     ("Ceil", Node::Ceil),
                     ("Round", Node::Round),
+                    ("Sin", Node::Sin),
+                    ("Cos", Node::Cos),
+                    ("Tan", Node::Tan),
                     ("Add", Node::Add { lhs: 0.0, rhs: 0.0 }),
                     ("Sub", Node::Sub { lhs: 0.0, rhs: 0.0 }),
                     ("Mul", Node::Mul { lhs: 1.0, rhs: 1.0 }),
@@ -294,6 +300,9 @@ impl SnarlViewer<Node> for Viewer {
             Node::Floor => "Floor",
             Node::Ceil => "Ceil",
             Node::Round => "Round",
+            Node::Sin => "Sin",
+            Node::Cos => "Cos",
+            Node::Tan => "Tan",
             Node::Add { .. } => "Add",
             Node::Sub { .. } => "Subtract",
             Node::Mul { .. } => "Multiply",
@@ -355,6 +364,9 @@ impl SnarlViewer<Node> for Viewer {
             Node::Floor => 1,
             Node::Ceil => 1,
             Node::Round => 1,
+            Node::Sin => 1,
+            Node::Cos => 1,
+            Node::Tan => 1,
             Node::Add { .. } => 2,
             Node::Sub { .. } => 2,
             Node::Mul { .. } => 2,
@@ -452,9 +464,15 @@ impl SnarlViewer<Node> for Viewer {
             | Node::OpenSimplex2
             | Node::OpenSimplex2s
             | Node::Position => unreachable!(),
-            Node::Abs | Node::Neg | Node::Sqrt | Node::Floor | Node::Ceil | Node::Round => {
-                noise(ui)
-            }
+            Node::Abs
+            | Node::Neg
+            | Node::Sqrt
+            | Node::Floor
+            | Node::Ceil
+            | Node::Round
+            | Node::Sin
+            | Node::Cos
+            | Node::Tan => noise(ui),
             Node::CellValue { jitter }
             | Node::CellDistance { jitter }
             | Node::CellDistanceSq { jitter } => input_jitter(self, ui, jitter),
@@ -622,6 +640,9 @@ impl SnarlViewer<Node> for Viewer {
             | Node::Floor
             | Node::Ceil
             | Node::Round
+            | Node::Sin
+            | Node::Cos
+            | Node::Tan
             | Node::Add { .. }
             | Node::Sub { .. }
             | Node::Mul { .. }
@@ -666,6 +687,9 @@ impl SnarlViewer<Node> for Viewer {
             | Node::Floor
             | Node::Ceil
             | Node::Round
+            | Node::Sin
+            | Node::Cos
+            | Node::Tan
             | Node::Add { .. }
             | Node::Sub { .. }
             | Node::Mul { .. }
@@ -852,6 +876,9 @@ pub fn node_to_noise(
         Node::Floor => Some(Box::new(input_or(0, 0.0)?.floor())),
         Node::Ceil => Some(Box::new(input_or(0, 0.0)?.ceil())),
         Node::Round => Some(Box::new(input_or(0, 0.0)?.round())),
+        Node::Sin => Some(Box::new(input_or(0, 0.0)?.sin())),
+        Node::Cos => Some(Box::new(input_or(0, 0.0)?.cos())),
+        Node::Tan => Some(Box::new(input_or(0, 0.0)?.tan())),
         Node::Add { lhs, rhs } => Some(Box::new(input_or(0, lhs)?.add(input_or(1, rhs)?))),
         Node::Sub { lhs, rhs } => Some(Box::new(input_or(0, lhs)?.sub(input_or(1, rhs)?))),
         Node::Mul { lhs, rhs } => Some(Box::new(input_or(0, lhs)?.mul(input_or(1, rhs)?))),
