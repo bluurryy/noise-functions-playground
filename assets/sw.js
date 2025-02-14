@@ -1,4 +1,4 @@
-var cacheName = 'noise-functions-demo-pwa';
+var cacheName = 'noise-functions-playground';
 var filesToCache = [
   './',
   './index.html',

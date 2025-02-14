@@ -6,5 +6,6 @@
 )]
 
 mod app;
+mod message_box;
 mod nodes_snarl;
 pub use app::App;

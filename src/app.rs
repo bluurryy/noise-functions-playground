@@ -1,12 +1,26 @@
+use std::sync::mpsc::{self, Receiver, Sender};
+
 use egui_snarl::{OutPinId, Snarl};
 use noise_functions::Sample;
 use serde::{Deserialize, Serialize};
 
-use crate::nodes_snarl;
+use crate::{message_box::MessageBox, nodes_snarl};
+
+const GIT_VERSION: &str = git_version::git_version!();
 
 pub struct App {
     settings: Settings,
     preview_texture: egui::TextureHandle,
+    message_box: MessageBox,
+    channel: Receiver<Message>,
+
+    #[cfg_attr(not(target_arch = "wasm32"), expect(dead_code))]
+    channel_sender: Sender<Message>,
+}
+
+enum Message {
+    #[cfg(target_arch = "wasm32")]
+    Error(String),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,6 +49,8 @@ impl Default for Settings {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let (sender, receiver) = mpsc::channel();
+
         let mut app = App {
             settings: cc
                 .storage
@@ -45,6 +61,9 @@ impl App {
                 egui::ColorImage::example(),
                 egui::TextureOptions::NEAREST,
             ),
+            message_box: Default::default(),
+            channel: receiver,
+            channel_sender: sender,
         };
 
         app.update_texture_for_selected();
@@ -109,6 +128,48 @@ impl App {
             egui::TextureOptions::NEAREST,
         );
     }
+
+    #[cfg(target_arch = "wasm32")]
+    fn clear_cache_and_reload_window(&mut self) {
+        use wasm_bindgen_futures::{spawn_local, JsFuture};
+
+        let channel = self.channel_sender.clone();
+
+        spawn_local(async move {
+            let report = |message: String| {
+                _ = channel.send(Message::Error(message));
+            };
+
+            let window = match web_sys::window() {
+                Some(some) => some,
+                None => return report("Can't get window.".into()),
+            };
+
+            let caches = match window.caches() {
+                Ok(ok) => ok,
+                Err(err) => {
+                    return report(format!(
+                        "Can't get caches: {}",
+                        err.as_string().unwrap_or_default()
+                    ))
+                }
+            };
+
+            if let Err(err) = JsFuture::from(caches.delete("noise-functions-playground")).await {
+                return report(format!(
+                    "Can't delete cache: {}",
+                    err.as_string().unwrap_or_default()
+                ));
+            }
+
+            if let Err(err) = window.location().reload_with_forceget(true) {
+                return report(format!(
+                    "Can't reload page: {}",
+                    err.as_string().unwrap_or_default()
+                ));
+            }
+        });
+    }
 }
 
 impl eframe::App for App {
@@ -117,6 +178,43 @@ impl eframe::App for App {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Ok(message) = self.channel.try_recv() {
+            match message {
+                #[cfg(target_arch = "wasm32")]
+                Message::Error(error) => {
+                    self.message_box.open("Error", error);
+                }
+            }
+        }
+
+        self.message_box.show_if_open(ctx);
+
+        egui::TopBottomPanel::top("top-controls").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+
+                    ui.hyperlink_to(
+                        "node-functions-playground",
+                        "https://github.com/bluurryy/noise-functions-playground",
+                    );
+                    ui.label(" ");
+                    ui.label(
+                        egui::RichText::from(GIT_VERSION).text_style(egui::TextStyle::Monospace),
+                    );
+                });
+
+                #[cfg(target_arch = "wasm32")]
+                if ui
+                    .button("Update")
+                    .on_hover_text("Deletes the cache and reloads the page.")
+                    .clicked()
+                {
+                    self.clear_cache_and_reload_window();
+                }
+            });
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             self.settings
                 .snarl_viewer
@@ -197,18 +295,8 @@ impl eframe::App for App {
 }
 
 fn attribution(ui: &mut egui::Ui) {
-    const GIT_VERSION: &str = git_version::git_version!();
-
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-
-        ui.hyperlink_to(
-            "node-functions-playground",
-            "https://github.com/bluurryy/noise-functions-playground",
-        );
-        ui.label(" ");
-        ui.label(egui::RichText::from(GIT_VERSION).text_style(egui::TextStyle::Monospace));
-        ui.label(". ");
 
         ui.label("Powered by ");
         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
