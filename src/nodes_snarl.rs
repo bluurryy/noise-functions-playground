@@ -103,6 +103,9 @@ pub enum Node {
     },
 
     // seed
+    Seed {
+        seed: i32,
+    },
     AddSeed {
         add: i32,
     },
@@ -250,6 +253,7 @@ impl Viewer {
             (
                 "Seed",
                 &[
+                    ("Seed", Node::Seed { seed: 0 }),
                     ("Add Seed", Node::AddSeed { add: 1 }),
                     ("Mul Seed", Node::MulSeed { mul: 1 }),
                 ],
@@ -313,6 +317,7 @@ impl SnarlViewer<Node> for Viewer {
             Node::Max { .. } => "Max",
             Node::Lerp { .. } => "Lerp",
             Node::Clamp { .. } => "Clamp",
+            Node::Seed { .. } => "Seed",
             Node::AddSeed { .. } => "Add Seed",
             Node::MulSeed { .. } => "Multiply Seed",
             Node::Position => "Position",
@@ -377,6 +382,7 @@ impl SnarlViewer<Node> for Viewer {
             Node::Max { .. } => 2,
             Node::Lerp { .. } => 3,
             Node::Clamp { .. } => 3,
+            Node::Seed { .. } => 2,
             Node::AddSeed { .. } => 2,
             Node::MulSeed { .. } => 2,
             Node::Position => 0,
@@ -598,7 +604,9 @@ impl SnarlViewer<Node> for Viewer {
 
                 PinInfo::default()
             }
-            Node::AddSeed { add: value } | Node::MulSeed { mul: value } => {
+            Node::Seed { seed: value }
+            | Node::AddSeed { add: value }
+            | Node::MulSeed { mul: value } => {
                 match pin.id.input {
                     0 => {
                         ui.add(egui::Label::new("Noise").selectable(false));
@@ -653,6 +661,7 @@ impl SnarlViewer<Node> for Viewer {
             | Node::Max { .. }
             | Node::Lerp { .. }
             | Node::Clamp { .. }
+            | Node::Seed { .. }
             | Node::AddSeed { .. }
             | Node::MulSeed { .. }
             | Node::Number { .. } => 1,
@@ -700,6 +709,7 @@ impl SnarlViewer<Node> for Viewer {
             | Node::Max { .. }
             | Node::Lerp { .. }
             | Node::Clamp { .. }
+            | Node::Seed { .. }
             | Node::AddSeed { .. }
             | Node::MulSeed { .. }
             | Node::Number { .. } => {
@@ -893,6 +903,7 @@ pub fn node_to_noise(
         Node::Clamp { value, min, max } => Some(Box::new(
             input_or(0, value)?.clamp(input_or(1, min)?, input_or(2, max)?),
         )),
+        Node::Seed { seed } => Some(Box::new(input_or(0, 0.0)?.seed(seed))),
         Node::AddSeed { add } => Some(Box::new(input_or(0, 0.0)?.add_seed(add))),
         Node::MulSeed { mul } => Some(Box::new(input_or(0, 0.0)?.mul_seed(mul))),
         Node::Position => match pin.output {
